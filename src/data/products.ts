@@ -1,23 +1,33 @@
-export const products = [
+// src/data/products.ts
+
+export type Product = {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  image: string;
+};
+
+export const products: Product[] = [
   {
     id: 1,
     name: "Cuaderno Floral",
-    price: "$1200",
-    description: "Cuaderno artesanal con tapa dura y diseño floral.",
-    image: "/productos/cuaderno1.jpg",
+    description: "Cuaderno A5 con tapas ilustradas y hojas lisas.",
+    price: "$1.200",
+    image: "/productos/cuaderno1.jpg", // Asegurate de tener esta imagen en public/images
   },
   {
     id: 2,
-    name: "Set de Stickers",
-    price: "$600",
-    description: "Stickers hechos a mano para decorar tus cuadernos.",
+    name: "Planificador Semanal",
+    description: "Bloc de planificador semanal con diseño pastel.",
+    price: "$900",
     image: "/productos/stickers1.jpg",
   },
   {
     id: 3,
-    name: "Planner Semanal",
-    price: "$950",
-    description: "Ideal para organizar tu semana con estilo.",
+    name: "Stickers Decorativos",
+    description: "Set de stickers para decorar agendas o cuadernos.",
+    price: "$600",
     image: "/productos/planner1.jpg",
   },
 ];
