@@ -2,11 +2,7 @@
 import Link from "next/link";
 import { Menu, X, ShoppingCart, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Nunito, Pacifico } from "next/font/google";
 import Image from "next/image";
-
-const pacifico = Pacifico({ subsets: ["latin"], weight: "400" });
-const nunito = Nunito({ subsets: ["latin"], weight: "400" });
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
