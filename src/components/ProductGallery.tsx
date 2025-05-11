@@ -1,53 +1,45 @@
 import Image from "next/image";
 
-const products = [
-  {
-    id: 1,
-    name: "Cuaderno Floral",
-    price: "$1500",
-    description: "Hecho a mano con papel reciclado y detalles en glitter.",
-    image: "/producto1.jpg", // imagen de ejemplo
-  },
-  {
-    id: 2,
-    name: "Planner Semanal",
-    price: "$1200",
-    description: "Ideal para organizar tus días con estilo.",
-    image: "/producto2.jpg",
-  },
-  {
-    id: 3,
-    name: "Stickers Vintage",
-    price: "$800",
-    description: "Pack de 50 stickers para decorar lo que quieras.",
-    image: "/producto3.jpg",
-  },
-];
+type Product = {
+  id: number;
+  name: string;
+  price: string;
+  description: string;
+  image: string;
+};
 
-export default function ProductGallery() {
+interface ProductGalleryProps {
+  products: Product[];
+}
+
+export default function ProductGallery({ products }: ProductGalleryProps) {
+  if (!Array.isArray(products) || products.length === 0) {
+    return <p className="text-center text-gray-500">No hay productos disponibles.</p>;
+  }
+
   return (
-    <section className="px-4 py-8 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-center text-[#A084CA]">Productos</h2>
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-        {products.map((product) => (
-          <div
-            key={product.id}
-            className="bg-white rounded-2xl shadow-md border border-[#D1D1D1] p-4 hover:shadow-lg transition-all"
-          >
-            <div className="relative w-full h-48 rounded-xl overflow-hidden mb-3">
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <h3 className="text-lg font-semibold text-[#A084CA]">{product.name}</h3>
-            <p className="text-sm text-gray-600 mb-1">{product.description}</p>
-            <p className="font-bold text-[#FFF4B1] text-base">{product.price}</p>
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {products.map((product) => (
+        <div key={product.id} className="bg-white p-4 rounded-xl shadow-md">
+          <Image
+            src={product.image}
+            alt={product.name}
+            width={300}
+            height={300}
+            className="w-full h-60 object-cover rounded-lg mb-4"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              target.src = "/fallback.jpg"; // Asegurate de tener fallback.jpg en /public
+            }}
+          />
+          <h3 className="text-xl font-semibold text-acento-lila">{product.name}</h3>
+          <p className="text-gray-600">{product.description}</p>
+          <p className="text-acento-amarillo font-bold mt-2">{product.price}</p>
+
+          {/* 🧡 Futuro: botón de favorito */}
+          {/* <button onClick={() => toggleFavorite(product.id)}>⭐</button> */}
+        </div>
+      ))}
+    </div>
   );
 }
