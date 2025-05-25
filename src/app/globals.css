@@ -2,6 +2,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* En tu archivo globals.css o layout.tsx */
+@import 'react-responsive-carousel/lib/styles/carousel.min.css';
 
 :root {
   --background: #ffffff;

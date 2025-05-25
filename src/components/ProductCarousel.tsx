@@ -2,17 +2,11 @@
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, A11y } from 'swiper/modules';
 import Image from 'next/image';
+import Link from 'next/link';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-
-type Product = {
-  id: number;
-  name: string;
-  price: string;
-  description: string;
-  image: string;
-};
+import type { Product } from '@data/products';
 
 interface ProductCarouselProps {
   products: Product[];
@@ -38,18 +32,23 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
     >
       {products.map((product) => (
         <SwiperSlide key={product.id}>
-          <div className="bg-white p-4 rounded-xl shadow-md">
-            <Image
-              src={product.image}
-              alt={product.name}
-              width={300}
-              height={300}
-              className="w-full h-60 object-cover rounded-lg mb-4"
-            />
-            <h3 className="text-xl font-semibold text-acento-lila">{product.name}</h3>
-            <p className="text-gray-600">{product.description}</p>
-            <p className="text-acento-amarillo font-bold mt-2">{product.price}</p>
-          </div>
+          <Link href={`/productos/${product.slug}`}>
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md h-full min-h-[420px] flex flex-col justify-between hover:shadow-lg transition cursor-pointer">
+              <Image
+                src={product.images[0]}
+                alt={product.name}
+                width={300}
+                height={300}
+                className="w-full h-48 sm:h-56 object-contain rounded-lg mb-3 sm:mb-4"
+              />
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-600">{product.name}</h3>
+              <p className="text-sm sm:text-base text-gray-600 line-clamp-1">{product.description}</p>
+              <span className="text-gray-400 line-through text-base">${product.variants?.[0].price.toFixed(2) ?? product.price.toFixed(2)}</span>
+                <span className="text-lg font-bold text-gray-600">
+                  ${ (product.price * 0.8).toFixed(2) }
+                </span>
+            </div>
+          </Link>
         </SwiperSlide>
       ))}
     </Swiper>
