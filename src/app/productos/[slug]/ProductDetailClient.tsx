@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useCart } from '@context/CartContext';
 import ProductImageCarousel from '@components/ProductImageCarousel'; // Asegúrate de que la ruta sea correcta
 
