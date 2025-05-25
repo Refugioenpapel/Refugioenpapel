@@ -9,12 +9,12 @@ export function generateStaticParams() {
   }));
 }
 
-// Hacemos la función asincrónica para resolver los parámetros de forma correcta
+// Página del detalle del producto
 export default async function ProductDetailPage({ params }: { params: { slug: string } }) {
-  // Esperamos los parámetros correctamente
-  const { slug } = await params;
+  // Utilizar `await` para resolver el parámetro correctamente
+  const slug = await params.slug;  // En versiones experimentales, esto puede ser necesario.
 
-  // Buscamos el producto correspondiente al slug
+  // Buscar el producto correspondiente al slug
   const product = products.find((p) => p.slug === slug);
 
   // Si no encontramos el producto, mostramos un error 404
@@ -22,6 +22,6 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     return notFound();
   }
 
-  // Si encontramos el producto, lo renderizamos con el cliente de detalle
+  // Si encontramos el producto, lo renderizamos
   return <ProductDetailClient product={product} />;
 }
