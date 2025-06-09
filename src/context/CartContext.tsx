@@ -1,11 +1,13 @@
 'use client';
 import { createContext, useContext, useState, ReactNode } from 'react';
-import SlideCart from '@components/SlideCart'; // ⬅️ Asegurate de que el path sea correcto
+import CartDrawer from '@components/CartDrawer'; // ⬅️ nuevo import
 
 type CartItem = {
   id: string;
   name: string;
-  price: number;
+  variantLabel?: string;
+  originalPrice: number; // precio real (sin descuento)
+  price: number;         // con descuento aplicado
   quantity: number;
   image: string;
 };
@@ -39,22 +41,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const closeCart = () => setIsCartOpen(false);
 
-  const addToCart = (product: CartItem) => {
-    const discountedPrice = parseFloat((product.price * 0.8).toFixed(2));
-
-    setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        return [...prevItems, { ...product, price: discountedPrice, quantity: 1 }];
-      }
-    });
-  };
+  const addToCart = (item: CartItem) => {
+  setCartItems((prevItems) => {
+    const existingItem = prevItems.find((i) => i.id === item.id);
+    if (existingItem) {
+      return prevItems.map((i) =>
+        i.id === item.id
+          ? { ...i, quantity: i.quantity + item.quantity }
+          : i
+      );
+    } else {
+      return [...prevItems, item];
+    }
+  });
+};
 
   const removeFromCart = (id: string) => {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
@@ -118,8 +118,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      {/* ⬇️ Este componente SIEMPRE debe estar montado globalmente */}
-      <SlideCart />
+      <CartDrawer /> {/* el carrito global */}
     </CartContext.Provider>
   );
 }

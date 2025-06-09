@@ -19,8 +19,8 @@ export default function ResumenPage() {
   const [products, setProducts] = useState<CartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
 
-  const aliasTransferencia = 'micuenta.banco.alias';
-  const telefonoContacto = '+54 9 11 1234 5678';
+  const aliasTransferencia = 'refugioenpapel';
+  const telefonoContacto = '+54 9 11 2409 8439';
 
   useEffect(() => {
     const stored = localStorage.getItem('lastCart');

@@ -33,7 +33,14 @@ export default function Footer() {
               <MdEmail />
             </a>
           </div>
-          <p className="text-xs mt-2">© 2025 Refugio en Papel. Todos los derechos reservados.</p>
+          <div className="text-center md:text-end text-xs mt-2 space-y-1">
+            <p>© 2025 Refugio en Papel. Todos los derechos reservados.</p>
+            <p>El contenido de este sitio está protegido por derechos de autor.</p>
+            <div className="flex justify-center md:justify-end gap-4">
+              <a href="/terminos-y-condiciones" className="underline hover:text-[#8C6ABF]">Términos y condiciones</a>
+              <a href="/politica-de-privacidad" className="underline hover:text-[#8C6ABF]">Política de privacidad</a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

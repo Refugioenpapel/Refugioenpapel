@@ -21,6 +21,7 @@ module.exports = {
         pacifico: ["Pacifico", "cursive"],
         quicksand: ["Quicksand", "sans-serif"],
         trend: ["Trend Sans One", "sans-serif"],
+        dancing: ['"Dancing Script"', 'cursive'],
       },
     },
   },

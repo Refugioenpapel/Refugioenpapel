@@ -43,21 +43,22 @@ export default function CheckoutPage() {
     const totalConDescuento = subtotal * (1 - discount);
 
     const numeroPedido = Math.floor(1000 + Math.random() * 9000);
-// const resumenProductos = cartItems.map((item) =>
-//   `• ${item.name} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`
-// ).join('\n');
 
     const orders = cartItems.map((item) => ({
       name: item.name,
       units: item.quantity,
       price: (item.price * item.quantity).toFixed(2),
     }));
+    const resumenProductos = cartItems.map((item) =>
+      `• ${item.name} x${item.quantity} – $${(item.price * item.quantity).toFixed(2)}`
+    ).join('\n');
 
     const templateParams = {
       ...formData,
       order_id: numeroPedido,
       orders,
       total: totalConDescuento.toFixed(2),
+      resumenProductos, // 👈 nueva variable
     };
 
     try {

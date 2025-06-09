@@ -32,7 +32,13 @@
       ],
       "@context/*": [
         "context/*"
-      ]
+      ],
+      "@types/*": [
+        "types/*"
+      ],
+      "@lib/*": [
+        "lib/*"
+      ],
     },
     "forceConsistentCasingInFileNames": true
   },
