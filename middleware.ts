@@ -1,27 +1,17 @@
 // middleware.ts
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+export function middleware(request: NextRequest) {
+  const token = request.cookies.get('sb-access-token')?.value
 
-  const supabase = createMiddlewareClient({ req, res })
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const role = user?.user_metadata?.role
-
-  // Si no está logueado o no es admin, redirige al inicio
-  if (!user || role !== 'admin') {
-    return NextResponse.redirect(new URL('/', req.url))
+  if (!token) {
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
-  return res
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/admin/:path*'], // protege todas las subrutas dentro de /admin
+  matcher: ['/admin', '/admin/:path*'], // protege /admin y /admin/nuevo-producto
 }
