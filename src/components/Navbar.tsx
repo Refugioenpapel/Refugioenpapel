@@ -1,50 +1,58 @@
 "use client";
-import Link from "next/link";
-import { Menu, X, ShoppingCart, Search, ChevronDown, ChevronUp } from "lucide-react";
+
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import { useCart } from "@context/CartContext";
+import { debounce } from "lodash"; // 📌 Agregamos lodash para debounce
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Menu,
+  X,
+  ShoppingCart,
+  Search,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useCart } from "@context/CartContext";
 import { fetchProducts } from "@lib/supabase/products";
 import type { Product } from "types/product";
-type ProductWithPrice = Product & { price: number }; // ✅ price obligatorio
+
+type ProductWithPrice = Product & { price: number };
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [productosOpen, setProductosOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<ProductWithPrice[]>([]); // ✅ tipado seguro
+  const [suggestions, setSuggestions] = useState<ProductWithPrice[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
-  const {
-    cartItems,
-    openCart,
-    closeCart,
-    discount,
-  } = useCart();
+  const { cartItems, openCart, closeCart } = useCart();
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  useEffect(() => {
-  async function loadSuggestions() {
-    if (searchQuery.trim() === "") {
+  // ✅ Función para cargar sugerencias, con debounce
+  const loadSuggestions = debounce(async (query: string) => {
+    if (query.trim().length < 2) {
       setSuggestions([]);
       return;
     }
 
     const all = await fetchProducts();
-
     const matches = all
-      .filter((p): p is ProductWithPrice => typeof p.price === "number") // ✅ filtramos por productos válidos
-      .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((p): p is ProductWithPrice => typeof p.price === "number")
+      .filter((p) =>
+        p.name.toLowerCase().includes(query.toLowerCase())
+      )
       .slice(0, 5);
 
     setSuggestions(matches);
-  }
+  }, 300); // 300ms debounce
 
-  loadSuggestions();
-}, [searchQuery]);
+  // ✅ useEffect para escuchar cambios en `searchQuery`
+  useEffect(() => {
+    loadSuggestions(searchQuery);
+    return () => loadSuggestions.cancel(); // 🧹 Limpia debounce si se desmonta
+  }, [searchQuery]);
 
   const handleSearch = (value: string) => {
     router.push(`/buscar?search=${encodeURIComponent(value)}`);
@@ -106,7 +114,7 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Menú lateral hamburguesa */}
+        {/* Menú hamburguesa */}
         {menuOpen && (
           <div className="fixed inset-0 z-50 flex">
             <div
@@ -129,6 +137,7 @@ export default function Navbar() {
                   <Search className="w-4 h-4 text-gray-500" />
                   <input
                     type="text"
+                    name="search"
                     placeholder="Buscar..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -141,42 +150,40 @@ export default function Navbar() {
                   />
                 </div>
 
-                {/* Dropdown de sugerencias */}
-                {/* Dropdown de sugerencias */}
-{suggestions.length > 0 && (
-  <ul className="absolute z-50 bg-white border mt-1 rounded-md shadow-lg w-full text-sm">
-    {suggestions.map((item) => (
-      <li
-        key={item.id}
-        onClick={() => handleSearch(item.name)}
-        className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
-      >
-        <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-          {item.images?.length > 0 ? (
-            <Image
-              src={item.images[0]}
-              alt={item.name}
-              width={48}
-              height={48}
-              className="object-cover w-full h-full"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-              Sin imagen
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col">
-          <span className="font-medium">{item.name}</span>
-          {/* Precios eliminados */}
-        </div>
-      </li>
-    ))}
-  </ul>
-)}
+                {/* Sugerencias */}
+                {suggestions.length > 0 && (
+                  <ul className="absolute z-50 bg-white border mt-1 rounded-md shadow-lg w-full text-sm">
+                    {suggestions.map((item) => (
+                      <li
+                        key={item.id}
+                        onClick={() => handleSearch(item.name)}
+                        className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
+                      >
+                        <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                          {item.images?.length > 0 ? (
+                            <Image
+                              src={item.images[0]}
+                              alt={item.name}
+                              width={48}
+                              height={48}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                              Sin imagen
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{item.name}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
-              {/* Menú de navegación */}
+              {/* Links del menú */}
               <nav className="flex flex-col space-y-4 text-base font-medium">
                 <Link href="/" onClick={() => setMenuOpen(false)} className="hover:text-[#A084CA]">
                   Inicio
@@ -188,21 +195,18 @@ export default function Navbar() {
                     className="flex justify-between items-center w-full hover:text-[#A084CA]"
                   >
                     Productos
-                    <span>
-                      {productosOpen ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </span>
+                    {productosOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
 
                   {productosOpen && (
                     <div className="ml-4 mt-2 flex flex-col space-y-2 text-sm text-gray-700">
-                      <Link href="/productos?categoria=kits-imprimibles" onClick={() => setMenuOpen(false)}>
-                        Kits Imprimibles
+                      <Link href="/productos?categoria=decoracion-de-fiesta" onClick={() => setMenuOpen(false)}>
+                        Decoración de Fiesta
                       </Link>
-                      <Link href="/productos?categoria=Souvenirs" onClick={() => setMenuOpen(false)}>
+                      <Link href="/productos?categoria=golosinas-personalizadas" onClick={() => setMenuOpen(false)}>
+                        Golosinas Personalizadas
+                      </Link>
+                      <Link href="/productos?categoria=souvenirs" onClick={() => setMenuOpen(false)}>
                         Souvenirs
                       </Link>
                       <Link href="/productos?categoria=invitaciones-digitales" onClick={() => setMenuOpen(false)}>

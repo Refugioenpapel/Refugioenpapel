@@ -50,8 +50,8 @@ export default function TerminosYCondiciones() {
 
         <p className="mt-6">
           Si tenés dudas, podés contactarnos a:{' '}
-          <a href="mailto:contacto@mirefugioenpapel.com" className="text-[#8C6ABF] underline">
-            contacto@mirefugioenpapel.com
+          <a href="mailto:mirefugioenpapel@gmail.com" className="text-[#8C6ABF] underline">
+            mirefugioenpapel@gmail.com
           </a>
         </p>
       </div>

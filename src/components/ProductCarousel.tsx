@@ -76,7 +76,7 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
                   {/* Título y descripción */}
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-600">{product.name}</h3>
                   {product.description && (
-                    <p className="text-sm sm:text-base text-gray-600 line-clamp-1">{product.description}</p>
+                    <p className="text-sm sm:text-base text-gray-600 line-clamp-1">{product.description} 🖨️</p>
                   )}
 
                   {/* Precios */}
@@ -87,7 +87,7 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
                           Desde ${minVariantPrice?.toFixed(2)}
                         </span>
                         <span className="text-base font-bold">
-                          En promo desde ${discountedVariantPrice?.toFixed(2)}
+                          🔥Desde ${discountedVariantPrice?.toFixed(2)}
                         </span>
                       </>
                     ) : (

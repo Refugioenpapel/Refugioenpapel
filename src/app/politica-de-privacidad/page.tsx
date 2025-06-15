@@ -39,8 +39,8 @@ export default function PoliticaDePrivacidad() {
         <h2 className="text-lg font-medium mt-6">4. Derechos del usuario</h2>
         <p>
           Podés acceder, corregir o eliminar tus datos personales en cualquier momento escribiéndonos a:{' '}
-          <a href="mailto:contacto@mirefugioenpapel.com" className="text-[#8C6ABF] underline">
-            contacto@mirefugioenpapel.com
+          <a href="mailto:mirefugioenpapel@gmail.com" className="text-[#8C6ABF] underline">
+            mirefugioenpapel@gmail.com
           </a>
         </p>
 

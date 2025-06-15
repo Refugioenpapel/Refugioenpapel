@@ -51,14 +51,14 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
                 }}
               />
               <h3 className="text-lg sm:text-xl font-semibold text-gray-600">{product.name}</h3>
-              <p className="text-sm sm:text-base text-gray-600">{product.description}</p>
+              <p className="text-sm sm:text-base text-gray-600">{product.description} 🖨️</p>
               <div className=" items-center gap-2">
-                <span className="text-gray-400 line-through text-base">${product.price}</span>
+                <span className="text-gray-400 line-through text-base">Desde ${product.price}</span>
                 <span className="text-lg font-bold text-gray-600">
                   {product.price !== undefined ? (
                   <div className="items-center gap-2">
                     <span className="text-lg font-bold text-gray-600">
-                      ${(product.price * 0.8).toFixed(2)}
+                     🔥Desde ${(product.price * 0.8).toFixed(2)}
                     </span>
                   </div>
                 ) : (

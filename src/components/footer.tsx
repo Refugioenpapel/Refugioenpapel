@@ -29,7 +29,7 @@ export default function Footer() {
             <a href="https://wa.me/5491124098439" target="_blank" rel="noopener noreferrer" className="hover:text-[#8C6ABF]">
               <FaWhatsapp />
             </a>
-            <a href="mailto:contacto@mirefugioenpapel.com" className="hover:text-[#8C6ABF]">
+            <a href="mailto:mirefugioenpapel@gmail.com" className="hover:text-[#8C6ABF]">
               <MdEmail />
             </a>
           </div>

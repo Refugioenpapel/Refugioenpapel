@@ -8,9 +8,10 @@ import type { Product } from "types/product";
 
 const categoriasDisponibles = [
   { label: "Todos", value: "" },
-  { label: "Kits Imprimibles", value: "kits-imprimibles" },
-  { label: "Souvenirs", value: "Souvenirs" },
+  { label: "Decoración de Fiesta", value: "decoracion-de-fiesta" },
+  { label: "Golosinas Personalizadas", value: "golosinas-personalizadas" },
   { label: "Invitaciones Digitales", value: "invitaciones-digitales" },
+  { label: "Souvenirs", value: "souvenirs" },
 ];
 
 export default function ProductosPage() {
