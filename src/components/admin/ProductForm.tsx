@@ -15,8 +15,8 @@ export default function ProductForm() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [variantList, setVariantList] = useState<Variant[]>([
-    { name: 'Mini', price: 0 },
-    { name: 'Grande', price: 0 },
+    { name: 'Refugio Mini', price: 0 },
+    { name: 'Refugio Grande', price: 0 },
   ]);
   const [category, setCategory] = useState('');
   const [categories, setCategories] = useState<string[]>([]);

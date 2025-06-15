@@ -27,8 +27,13 @@ export default function Navbar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { cartItems, openCart, closeCart } = useCart();
+const [hasMounted, setHasMounted] = useState(false);
 
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+useEffect(() => {
+  setHasMounted(true);
+}, []);
+
+const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   // ✅ Función para cargar sugerencias, con debounce
   const loadSuggestions = debounce(async (query: string) => {
@@ -106,7 +111,7 @@ export default function Navbar() {
 
           <button onClick={openCart} className="relative hover:text-[#A084CA]">
             <ShoppingCart className="w-6 h-6" />
-            {totalItems > 0 && (
+            {hasMounted && totalItems > 0 && (
               <span className="absolute -top-2 -right-2 text-xs bg-[#A084CA] text-white rounded-full px-1">
                 {totalItems}
               </span>

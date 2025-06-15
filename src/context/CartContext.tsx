@@ -1,13 +1,13 @@
 'use client';
-import { createContext, useContext, useState, ReactNode } from 'react';
-import CartDrawer from '@components/CartDrawer'; // ⬅️ nuevo import
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import CartDrawer from '@components/CartDrawer';
 
 type CartItem = {
   id: string;
   name: string;
   variantLabel?: string;
-  originalPrice: number; // precio real (sin descuento)
-  price: number;         // con descuento aplicado
+  originalPrice: number;
+  price: number;
   quantity: number;
   image: string;
 };
@@ -30,47 +30,85 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [discount, setDiscount] = useState(0);
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cart');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          console.log('[CartContext] Carrito cargado en useState:', parsed);
+          return parsed;
+        } catch (e) {
+          console.error('[CartContext] Error al parsear carrito:', e);
+        }
+      }
+    }
+    return [];
+  });
+
+  const [discount, setDiscount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('discount');
+      return saved ? parseFloat(saved) : 0;
+    }
+    return 0;
+  });
+
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   const openCart = () => {
-    console.log('abrir carrito'); // Útil para depuración
+    console.log('[CartContext] Abrir carrito');
     setIsCartOpen(true);
   };
 
   const closeCart = () => setIsCartOpen(false);
 
+  const saveCartToStorage = (items: CartItem[]) => {
+    localStorage.setItem('cart', JSON.stringify(items));
+    console.log('[CartContext] Carrito guardado:', items);
+  };
+
+  const saveDiscountToStorage = (value: number) => {
+    localStorage.setItem('discount', value.toString());
+    console.log('[CartContext] Descuento guardado:', value);
+  };
+
+  useEffect(() => {
+    saveCartToStorage(cartItems);
+  }, [cartItems]);
+
+  useEffect(() => {
+    saveDiscountToStorage(discount);
+  }, [discount]);
+
   const addToCart = (item: CartItem) => {
-  setCartItems((prevItems) => {
-    const existingItem = prevItems.find((i) => i.id === item.id);
-    if (existingItem) {
-      return prevItems.map((i) =>
-        i.id === item.id
-          ? { ...i, quantity: i.quantity + item.quantity }
-          : i
-      );
-    } else {
-      return [...prevItems, item];
-    }
-  });
-};
+    setCartItems((prevItems) => {
+      const existing = prevItems.find(i => i.id === item.id);
+      if (existing) {
+        return prevItems.map(i =>
+          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
+        );
+      } else {
+        return [...prevItems, item];
+      }
+    });
+  };
 
   const removeFromCart = (id: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
+    setCartItems(prev => prev.filter(item => item.id !== id));
   };
 
   const incrementQuantity = (id: string) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
+    setCartItems(prev =>
+      prev.map(item =>
         item.id === id ? { ...item, quantity: item.quantity + 1 } : item
       )
     );
   };
 
   const decrementQuantity = (id: string) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
+    setCartItems(prev =>
+      prev.map(item =>
         item.id === id && item.quantity > 1
           ? { ...item, quantity: item.quantity - 1 }
           : item
@@ -79,10 +117,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = (id: string, amount: number) => {
-    const validatedAmount = Math.max(1, Math.min(10, amount));
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: validatedAmount } : item
+    const valid = Math.max(1, Math.min(10, amount));
+    setCartItems(prev =>
+      prev.map(item =>
+        item.id === id ? { ...item, quantity: valid } : item
       )
     );
   };
@@ -118,7 +156,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      <CartDrawer /> {/* el carrito global */}
+      <CartDrawer />
     </CartContext.Provider>
   );
 }
