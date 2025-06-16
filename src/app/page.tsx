@@ -71,7 +71,7 @@ export default function Home() {
       <h1 className="px-4 sm:px-8 max-w-4xl mx-auto text-xl sm:text-2xl md:text-6xl font-dancing font-bold mb-4 text-[#555555]">
         donde la magia cobra forma de papel
       </h1>
-      <p className="text-base sm:text-lg md:text-4xl mx-auto font-dancing text-[#A56ABF]">
+      <p className="max-w-md sm:max-w-xl md:max-w-3xl text-base sm:text-lg md:text-4xl mx-auto font-dancing text-[#A56ABF]">
         Creá momentos únicos con diseños imprimibles llenos de ternura, color y amor
       </p>
 
