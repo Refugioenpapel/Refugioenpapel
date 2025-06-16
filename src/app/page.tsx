@@ -4,22 +4,33 @@ import Image from "next/image";
 import ProductCarousel from "@components/ProductCarousel";
 import { fetchProducts } from "@lib/supabase/products";
 
-const logos = ["/carrusel/banner-carrusel.jpeg"]; // Agregá más: "/carrusel/logo2.png", ...
+// Carrusel: imágenes y videos
+const logos = [
+  "/carrusel/banner-carrusel.mp4",
+  "/carrusel/banner-video1.mp4",
+  "/carrusel/banner-video2.mp4"
+];
 
 export default function Home() {
   const [index, setIndex] = useState(0);
+  const [fade, setFade] = useState(true); // Nuevo: para manejar opacidad
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true); // ← Nuevo
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % logos.length);
-    }, 3000);
+      setFade(false); // inicia el fade out
+
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % logos.length); // cambio de slide
+        setFade(true); // inicia el fade in
+      }, 300); // duración del fade out
+    }, 5000); // cambio cada 5 segundos
 
     const getProducts = async () => {
       const data = await fetchProducts();
       setProducts(data);
-      setLoading(false); // ← Marca que ya cargó
+      setLoading(false);
     };
 
     getProducts();
@@ -28,15 +39,30 @@ export default function Home() {
 
   return (
     <div className="pt-0 text-center py-10">
-      {/* Carrusel de logos */}
-      <div className="mx-auto mb-12 transition-opacity duration-1000 ease-in-out">
-        <Image
-          src={logos[index]}
-          alt={`Logo ${index + 1}`}
-          width={1920}
-          height={800}
-          className="mx-auto shadow-lg object-contain"
-        />
+      {/* Carrusel con efecto fade */}
+      <div
+        className={`mb-12 transition-opacity duration-500 ease-in-out w-full overflow-hidden ${
+          fade ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {logos[index].endsWith(".mp4") ? (
+          <video
+            src={logos[index]}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="mx-auto w-full h-auto object-contain shadow-lg"
+          />
+        ) : (
+          <Image
+            src={logos[index]}
+            alt={`Slide ${index + 1}`}
+            width={1920}
+            height={800}
+            className="mx-auto shadow-lg object-contain"
+          />
+        )}
       </div>
 
       <h1 className="px-4 sm:px-8 max-w-4xl mx-auto text-xl sm:text-2xl md:text-6xl font-dancing font-bold mb-4 text-[#555555]">

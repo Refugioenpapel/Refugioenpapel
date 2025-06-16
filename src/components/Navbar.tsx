@@ -211,11 +211,11 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
                       <Link href="/productos?categoria=golosinas-personalizadas" onClick={() => setMenuOpen(false)}>
                         Golosinas Personalizadas
                       </Link>
-                      <Link href="/productos?categoria=souvenirs" onClick={() => setMenuOpen(false)}>
-                        Souvenirs
-                      </Link>
                       <Link href="/productos?categoria=invitaciones-digitales" onClick={() => setMenuOpen(false)}>
                         Invitaciones Digitales
+                      </Link>
+                      <Link href="/productos?categoria=souvenirs" onClick={() => setMenuOpen(false)}>
+                        Souvenirs
                       </Link>
                     </div>
                   )}
