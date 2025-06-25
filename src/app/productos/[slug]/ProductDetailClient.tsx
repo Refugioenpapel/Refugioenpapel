@@ -17,12 +17,15 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const { addToCart, openCart } = useCart();
   const longDescriptionHTML = descriptionsByCategory[product.category] || '';
 
+  const [showZoom, setShowZoom] = useState(false);
+  const [zoomIndex, setZoomIndex] = useState<number | null>(null);
+
   const handleAddToCart = () => {
     const originalPrice = selectedVariant.price;
     const discountedPrice = Math.round(originalPrice * 0.8);
 
     addToCart({
-      id: `${product.id}-${selectedVariant.label}`, // único por variante
+      id: `${product.id}-${selectedVariant.label}`,
       name: product.name,
       variantLabel: selectedVariant.label,
       originalPrice,
@@ -31,15 +34,38 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       image: product.images[0],
     });
 
-    openCart(); // opcional: abrir el carrito automáticamente
+    openCart();
+  };
+
+  const handlePrev = () => {
+    if (zoomIndex !== null) {
+      setZoomIndex((prev) =>
+        prev === 0 ? product.images.length - 1 : (prev as number) - 1
+      );
+    }
+  };
+
+  const handleNext = () => {
+    if (zoomIndex !== null) {
+      setZoomIndex((prev) =>
+        prev === product.images.length - 1 ? 0 : (prev as number) + 1
+      );
+    }
   };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row gap-8">
-        {/* Carrusel de imágenes */}
+        {/* Carrusel de imágenes con zoom */}
         <div className="w-full max-w-sm mx-auto">
-          <ProductImageCarousel images={product.images} alt={product.name} />
+          <ProductImageCarousel
+            images={product.images}
+            alt={product.name}
+            onImageClick={(_, index) => {
+              setZoomIndex(index);
+              setShowZoom(true);
+            }}
+          />
         </div>
 
         {/* Detalles del producto */}
@@ -95,6 +121,57 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           />
         </div>
       )}
+
+      {/* Modal para zoom con navegación */}
+      {showZoom && zoomIndex !== null && (
+  <div
+    className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-4"
+    onClick={() => setShowZoom(false)} // click fuera
+    onKeyDown={(e) => {
+      if (e.key === 'Escape') {
+        setShowZoom(false);
+      }
+    }}
+    tabIndex={-1} // necesario para capturar teclado
+  >
+    <div
+      className="relative"
+      onClick={(e) => e.stopPropagation()} // evita cierre al click sobre la imagen o botones
+    >
+      {/* Botón cerrar */}
+      <button
+        onClick={() => setShowZoom(false)}
+        className="absolute top-4 right-4 text-white text-3xl font-bold"
+      >
+        &times;
+      </button>
+
+      {/* Botón anterior */}
+      <button
+        onClick={handlePrev}
+        className="absolute left-[-60px] top-1/2 -translate-y-1/2 text-white text-4xl font-bold px-2"
+      >
+        ‹
+      </button>
+
+      {/* Imagen ampliada */}
+      <img
+        src={product.images[zoomIndex]}
+        alt="Imagen ampliada"
+        className="max-w-[105vw] max-h-[105vh] rounded shadow-lg"
+      />
+
+      {/* Botón siguiente */}
+      <button
+        onClick={handleNext}
+        className="absolute right-[-60px] top-1/2 -translate-y-1/2 text-white text-4xl font-bold px-2"
+      >
+        ›
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

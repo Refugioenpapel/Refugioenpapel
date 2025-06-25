@@ -39,7 +39,6 @@ export const descriptionsByCategory: Record<string, string> = {
     <li>Toppers de Personajes (Entre 6 y 8cm aprox)</li>
     <li>Pochoclera (9cm de alto)</li>
     <li>Bandeja (20x11,5cm)</li>
-    <li>Milk Box </li>
     <li>Bolsita (21x11,5cm)</li>
     <li>Cierra Bolsita (14x7cm)</li>
     <li>Caja Cierre Corazón o Cubo (según diseño) (6,5x6,5cm aprox)</li>
