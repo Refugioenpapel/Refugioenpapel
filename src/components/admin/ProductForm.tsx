@@ -14,6 +14,7 @@ export default function ProductForm() {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [discount, setDiscount] = useState(''); // ✅ Nuevo estado para descuento
   const [variantList, setVariantList] = useState<Variant[]>([
     { name: 'Refugio Mini', price: 0 },
     { name: 'Refugio Grande', price: 0 },
@@ -25,7 +26,6 @@ export default function ProductForm() {
   const [imageFile, setImageFile] = useState<File[]>([]);
   const router = useRouter();
 
-  // Cargar categorías existentes desde Supabase
   useEffect(() => {
     const fetchCategories = async () => {
       const { data, error } = await supabase.from('categories').select('name');
@@ -79,7 +79,12 @@ export default function ProductForm() {
       return;
     }
 
-    // Subir imágenes a Supabase Storage
+    const discountValue = Number(discount);
+    if (discount && (discountValue < 0 || discountValue > 100)) {
+      alert('El descuento debe estar entre 0 y 100');
+      return;
+    }
+
     let imageUrls: string[] = [];
 
     for (const file of imageFile) {
@@ -100,13 +105,13 @@ export default function ProductForm() {
       imageUrls.push(imageUrl);
     }
 
-    // Insertar producto en Supabase
     const { error: insertError } = await supabase.from('products').insert([
       {
         name,
         slug,
         description,
         price: Number(price),
+        discount: discount ? discountValue : null, // ✅ se guarda descuento
         category,
         variants: variantList,
         images: imageUrls,
@@ -159,6 +164,17 @@ export default function ProductForm() {
         onChange={(e) => setPrice(e.target.value)}
         className="w-full border p-2 rounded"
         required
+      />
+
+      {/* ✅ Campo para descuento */}
+      <input
+        type="number"
+        placeholder="Descuento (%)"
+        value={discount}
+        onChange={(e) => setDiscount(e.target.value)}
+        className="w-full border p-2 rounded"
+        min="0"
+        max="100"
       />
 
       <div>

@@ -5,6 +5,7 @@ export interface Product {
   description: string;
   images: string[];
   price?: number;
+  discount?: number; // <--- nuevo
   original_price?: number;
   longDescription?: string;
   variants?: {

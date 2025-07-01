@@ -33,6 +33,9 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
         className="w-full"
       >
         {products.map((product) => {
+          const discount = product.discount ?? 0;
+          const hasDiscount = discount > 0;
+
           const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
           const variants = product.variants ?? [];
 
@@ -40,11 +43,11 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
             ? Math.min(...variants.map((v) => v.price))
             : null;
 
-          const discountedVariantPrice = minVariantPrice
-            ? minVariantPrice * 0.8
-            : null;
+          const basePrice = hasVariants
+            ? minVariantPrice ?? 0
+            : product.price ?? 0;
 
-          const hasDiscount = hasVariants || product.original_price;
+          const discountedPrice = (basePrice * (1 - discount / 100)).toFixed(2);
 
           return (
             <SwiperSlide key={product.id}>
@@ -54,7 +57,7 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
                   {/* Badge de descuento */}
                   {hasDiscount && (
                     <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
-                      20% OFF
+                      {discount}% OFF
                     </span>
                   )}
 
@@ -81,26 +84,19 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
 
                   {/* Precios */}
                   <div className="mt-2">
-                    {hasVariants ? (
+                    {hasDiscount ? (
                       <>
                         <span className="text-sm text-gray-400 line-through block">
-                          Desde ${minVariantPrice?.toFixed(2)}
+                          Desde ${basePrice.toFixed(2)}
                         </span>
-                        <span className="text-base font-bold">
-                          🔥Desde ${discountedVariantPrice?.toFixed(2)}
+                        <span className="text-base font-bold text-pink-600">
+                          🔥Desde ${discountedPrice}
                         </span>
                       </>
                     ) : (
-                      <>
-                        {product.original_price && (
-                          <span className="text-sm text-gray-400 line-through block">
-                            ${product.original_price.toFixed(2)}
-                          </span>
-                        )}
-                        <span className="text-base font-bold text-pink-600">
-                          ${product.price?.toFixed(2) ?? '—'}
-                        </span>
-                      </>
+                      <span className="text-base font-bold text-gray-700">
+                        Desde ${basePrice.toFixed(2)}
+                      </span>
                     )}
                   </div>
                 </div>

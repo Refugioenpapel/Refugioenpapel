@@ -4,7 +4,7 @@ import type { Product } from "types/product";
 export async function fetchProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, description, price, created_at, slug, updated_at, category, images, variants");
+    .select("id, name, description, price, discount, created_at, slug, updated_at, category, images, variants");
 
   if (error) {
     console.error("Error fetching products:", error);
@@ -17,7 +17,7 @@ export async function fetchProducts(): Promise<Product[]> {
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, description, price, created_at, slug, updated_at, category, images, variants")
+    .select("id, name, description, price, discount, created_at, slug, updated_at, category, images, variants")
     .eq("slug", slug)
     .single();
 
