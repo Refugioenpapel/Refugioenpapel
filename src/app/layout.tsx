@@ -51,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* Marquesina fija */}
           <div className="fixed top-0 left-0 right-0 w-full bg-[#FDEFF7] py-2 overflow-hidden z-40">
             <div className="animate-marquee whitespace-nowrap text-sm font-semibold min-w-full inline-block font-quicksand text-[#D85B9C]">
-              PROMOCIÓN DE LANZAMIENTO: 20% OFF EN TODOS LOS KITS IMPRIMIBLES - 🛒 ¡APROVECHÁ EL DESCUENTO!
+              
             </div>
           </div>
 
