@@ -55,11 +55,18 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
                 <div className="relative bg-white p-4 sm:p-6 rounded-xl shadow-md h-full min-h-[420px] flex flex-col justify-between hover:shadow-lg transition cursor-pointer">
                   
                   {/* Badge de descuento */}
-                  {hasDiscount && (
-                    <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
-                      {discount}% OFF
-                    </span>
-                  )}
+                    {hasDiscount && (
+                      <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
+                        {discount}% OFF
+                      </span>
+                    )}
+
+                    {/* Badge por cantidad para productos físicos */}
+                    {product.is_physical && (
+                      <span className="absolute top-2 left-2 bg-red-200 text-gray-800 text-[10px] font-medium px-2 py-[2px] rounded z-10 shadow-sm">
+                        Descuento desde 10 u.
+                      </span>
+                    )}
 
                   {/* Imagen */}
                   {product.images && product.images.length > 0 ? (

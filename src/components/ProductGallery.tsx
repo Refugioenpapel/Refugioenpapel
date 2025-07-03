@@ -42,17 +42,24 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
           <div key={product.id} className="bg-white p-4 sm:p-6 rounded-xl shadow-md flex flex-col h-full">
             <Link href={`/productos/${product.slug}`} className="flex-1">
               <div className="hover:shadow-lg transition cursor-pointer flex justify-between flex-col h-full">
-                <Image
-                  src={product.images[0]}
-                  alt={product.name}
-                  width={300}
-                  height={300}
-                  className="w-full h-48 sm:h-60 object-contain rounded-lg mb-3 sm:mb-4"
-                  onError={(e) => {
-                    const target = e.currentTarget as HTMLImageElement;
-                    target.src = "/fallback.jpg";
-                  }}
-                />
+                <div className="relative mb-3 sm:mb-4">
+                  {product.is_physical && (
+                    <span className="absolute top-2 left-2 bg-red-200 text-gray-800 text-[10px] font-medium px-2 py-[2px] rounded z-10 shadow-sm">
+                      Descuento desde 10 u.
+                    </span>
+                  )}
+                  <Image
+                    src={product.images[0]}
+                    alt={product.name}
+                    width={300}
+                    height={300}
+                    className="w-full h-48 sm:h-60 object-contain rounded-lg"
+                    onError={(e) => {
+                      const target = e.currentTarget as HTMLImageElement;
+                      target.src = "/fallback.jpg";
+                    }}
+                  />
+                </div>
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-600">{product.name}</h3>
                 <p className="text-sm sm:text-base text-gray-600">{product.description} {!product.is_physical && '🖨️'}</p>
 
