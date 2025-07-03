@@ -1,6 +1,13 @@
 'use client';
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import CartDrawer from '@components/CartDrawer';
+
+type BulkDiscount = {
+  min: number;
+  max: number | null;
+  price: number;
+};
 
 type CartItem = {
   id: string;
@@ -9,7 +16,10 @@ type CartItem = {
   originalPrice: number;
   price: number;
   quantity: number;
+  weight?: number; // peso en gramos (opcional)
   image: string;
+  is_physical?: boolean;
+  bulk_discounts?: BulkDiscount[];
 };
 
 type CartContextType = {
@@ -81,18 +91,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     saveDiscountToStorage(discount);
   }, [discount]);
 
-  const addToCart = (item: CartItem) => {
-    setCartItems((prevItems) => {
-      const existing = prevItems.find(i => i.id === item.id);
-      if (existing) {
-        return prevItems.map(i =>
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
-        );
-      } else {
-        return [...prevItems, item];
-      }
-    });
+  const calculatePrice = (item: CartItem, quantity: number) => {
+    if (item.is_physical && item.bulk_discounts) {
+      const match = item.bulk_discounts.find((bd) => {
+        const minOk = quantity >= bd.min;
+        const maxOk = bd.max === null || quantity <= bd.max;
+        return minOk && maxOk;
+      });
+      return match ? match.price : item.originalPrice;
+    }
+    return item.price; // para digitales, ya viene con descuento aplicado
   };
+
+  const addToCart = (item: CartItem) => {
+  setCartItems((prevItems) => {
+    const existing = prevItems.find(i => i.id === item.id);
+    const newQuantity = existing ? existing.quantity + item.quantity : item.quantity;
+    const newPrice = calculatePrice(item, newQuantity);
+
+    if (existing) {
+      return prevItems.map(i =>
+        i.id === item.id
+          ? { ...i, quantity: newQuantity, price: newPrice }
+          : i
+      );
+    } else {
+      return [...prevItems, { ...item, price: newPrice }];
+    }
+  });
+};
+
 
   const removeFromCart = (id: string) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
@@ -100,28 +128,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const incrementQuantity = (id: string) => {
     setCartItems(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-      )
+      prev.map(item => {
+        if (item.id === id) {
+          const newQuantity = item.quantity + 1;
+          const newPrice = calculatePrice(item, newQuantity);
+          return { ...item, quantity: newQuantity, price: newPrice };
+        }
+        return item;
+      })
     );
   };
 
   const decrementQuantity = (id: string) => {
     setCartItems(prev =>
-      prev.map(item =>
-        item.id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
+      prev.map(item => {
+        if (item.id === id && item.quantity > 1) {
+          const newQuantity = item.quantity - 1;
+          const newPrice = calculatePrice(item, newQuantity);
+          return { ...item, quantity: newQuantity, price: newPrice };
+        }
+        return item;
+      })
     );
   };
 
   const updateQuantity = (id: string, amount: number) => {
-    const valid = Math.max(1, Math.min(10, amount));
+    const valid = Math.max(1, Math.min(100, amount));
     setCartItems(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, quantity: valid } : item
-      )
+      prev.map(item => {
+        if (item.id === id) {
+          const newPrice = calculatePrice(item, valid);
+          return { ...item, quantity: valid, price: newPrice };
+        }
+        return item;
+      })
     );
   };
 

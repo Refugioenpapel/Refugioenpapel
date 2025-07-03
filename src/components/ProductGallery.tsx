@@ -54,21 +54,21 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
                   }}
                 />
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-600">{product.name}</h3>
-                <p className="text-sm sm:text-base text-gray-600">{product.description} 🖨️</p>
+                <p className="text-sm sm:text-base text-gray-600">{product.description} {!product.is_physical && '🖨️'}</p>
 
                 <div className="items-center gap-2">
                   {hasDiscount ? (
                     <>
                       <span className="text-gray-400 line-through text-sm block">
-                        Desde ${price.toFixed(2)}
+                        {!product.is_physical && '🔥 Desde'} ${price.toFixed(2)}
                       </span>
                       <span className="text-lg font-bold text-gray-600">
-                        🔥Desde ${discountedPrice}
+                        {!product.is_physical && '🔥 Desde'} ${discountedPrice}
                       </span>
                     </>
                   ) : (
                     <span className="text-lg font-bold text-gray-600">
-                      Desde ${price.toFixed(2)}
+                      {!product.is_physical && '🔥 Desde'} ${price.toFixed(2)}
                     </span>
                   )}
                 </div>

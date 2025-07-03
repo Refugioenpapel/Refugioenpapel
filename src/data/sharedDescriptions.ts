@@ -84,4 +84,27 @@ export const descriptionsByCategory: Record<string, string> = {
     <li>Invitación Digital</li>
   </ul>
   `,
+    'souvenirs': `
+  <strong><br />Álbum de Figuritas Personalizado</strong><br />
+Ideal para cumpleaños, reuniones familiares o eventos escolares.<br />
+
+<strong><br />📦 Incluye:</strong><br />
+✔️ Álbum tamaño A5, estructura interna con espacios para figuritas y rompecabezas.<br />
+✔️ 6 paquetes de figuritas (5 figuritas por paquete - total 30 figuritas).<br />
+✔️ Personalización con temática a elección.<br />
+✔️ Opción de agregar el nombre del niño/a.<br />
+
+<strong><br />🎉 ¿Qué lo hace especial?</strong><br />
+Las figuritas pueden ser fotos del niño/a, de personajes de la temática o combinadas. Además, la estructura interna está pensada para hacerlo dinámico y divertido, con espacios en diferentes formatos (figuritas verticales, horizontales y rompecabezas sorpresa).<br />
+
+<strong><br />🚚 Envíos en todo al país.</strong><br />
+
+<strong><br />⚠️ IMPORTANTE:</strong><br />
+Para poder armar tu álbum personalizado necesitamos:<br />
+✔️ Temática deseada.<br />
+✔️ Nombre del niño/a (opcional).<br />
+✔️ 25 fotos: 21 con orientación vertical + 4 con orientación horizontal. (si las figuritas son con fotos).<br /><br />
+
+Una vez realizada la compra, te contactaremos para coordinar los detalles.
+  `,
 };

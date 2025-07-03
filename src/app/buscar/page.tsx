@@ -78,10 +78,10 @@ export default function BuscarPage() {
                     {hasVariants ? (
                       <>
                         <span className="text-sm text-gray-400 line-through block">
-                          Desde ${minVariantPrice?.toFixed(2)}
+                          {!product.is_physical && 'Desde'} ${minVariantPrice?.toFixed(2)}
                         </span>
                         <span className="text-base font-bold">
-                          🔥Desde ${discountedVariantPrice?.toFixed(2)}
+                          {!product.is_physical && '🔥 Desde'} ${discountedVariantPrice?.toFixed(2)}
                         </span>
                       </>
                     ) : (

@@ -22,16 +22,26 @@ export default function ResumenPage() {
   const aliasTransferencia = 'refugioenpapel';
   const telefonoContacto = '+54 9 11 2409 8439';
 
-  useEffect(() => {
-    const stored = localStorage.getItem('lastCart');
-    if (stored) {
-      const parsed: CartItem[] = JSON.parse(stored);
-      setProducts(parsed);
-      const total = parsed.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      setSubtotal(total);
-      localStorage.removeItem('lastCart'); // 🧹 limpia después de usar
-    }
-  }, []);
+  const [checkoutInfo, setCheckoutInfo] = useState<any>(null);
+
+useEffect(() => {
+  const stored = localStorage.getItem('lastCart');
+  const info = localStorage.getItem('lastCheckoutInfo');
+
+  if (stored) {
+    const parsed: CartItem[] = JSON.parse(stored);
+    setProducts(parsed);
+    const total = parsed.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    setSubtotal(total);
+    localStorage.removeItem('lastCart');
+  }
+
+  if (info) {
+    setCheckoutInfo(JSON.parse(info));
+    localStorage.removeItem('lastCheckoutInfo');
+  }
+}, []);
+
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">

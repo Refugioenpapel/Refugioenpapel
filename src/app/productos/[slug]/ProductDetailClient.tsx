@@ -13,28 +13,25 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       : { label: 'Único', price: product.price ?? 0 };
 
   const [selectedVariant, setSelectedVariant] = useState(defaultVariant);
+  const [quantity, setQuantity] = useState(1);
   const { addToCart, openCart } = useCart();
   const longDescriptionHTML = descriptionsByCategory[product.category] || '';
 
   const [showZoom, setShowZoom] = useState(false);
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
 
-  const discount = product.discount ?? 0;
-  const discountedPrice = Math.round(selectedVariant.price * (1 - discount / 100));
-
   const handleAddToCart = () => {
-    const originalPrice = selectedVariant.price;
-
     addToCart({
       id: `${product.id}-${selectedVariant.label}`,
       name: product.name,
       variantLabel: selectedVariant.label,
-      originalPrice,
-      price: discountedPrice,
-      quantity: 1,
+      originalPrice: selectedVariant.price,
+      price: selectedVariant.price, // Se ajustará luego en el carrito si corresponde descuento
+      quantity,
       image: product.images[0],
+      is_physical: product.is_physical,
+      bulk_discounts: product.bulk_discounts,
     });
-
     openCart();
   };
 
@@ -72,16 +69,9 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           <h1 className="text-2xl sm:text-3xl font-bold text-[#A084CA] mb-2">{product.name}</h1>
           <p className="text-gray-700 mb-4">{product.description}</p>
 
-          <div className="flex items-center gap-2 mb-4">
-            {discount > 0 && (
-              <span className="text-gray-400 line-through text-base">
-                ${selectedVariant.price.toFixed(2)}
-              </span>
-            )}
-            <span className="text-lg font-bold text-gray-600">
-              ${discountedPrice.toFixed(2)}
-            </span>
-          </div>
+          <p className="text-lg font-bold text-gray-800 mb-4">
+          ${selectedVariant.price.toFixed(2)}
+          </p>
 
           {product.variants && product.variants.length > 0 && (
             <div className="mb-4">
@@ -102,6 +92,27 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               </select>
             </div>
           )}
+
+          <div className="flex items-center gap-4 mb-4">
+            <label className="text-sm font-semibold">Cantidad:</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300"
+              >
+                −
+              </button>
+              <span>{quantity}</span>
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => q + 1)}
+                className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300"
+              >
+                +
+              </button>
+            </div>
+          </div>
 
           <button
             onClick={handleAddToCart}

@@ -5,12 +5,25 @@ export interface Product {
   description: string;
   images: string[];
   price?: number;
-  discount?: number; // <--- nuevo
+  discount?: number;
   original_price?: number;
   longDescription?: string;
+  category: string;
+
+  // ✅ Variantes del producto (ej. Refugio Mini / Grande)
   variants?: {
     label: string;
     price: number;
   }[];
-  category: string; // ← agregá esta línea
+
+  // ✅ Si el producto es físico (Souvenir)
+  is_physical?: boolean;
+
+  // ✅ Descuentos por cantidad (sólo para productos físicos)
+  bulk_discounts?: {
+    min: number;        // cantidad mínima
+    max: number | null; // cantidad máxima, o null para "sin límite"
+    price: number;      // precio unitario con ese descuento
+  }[];
 }
+

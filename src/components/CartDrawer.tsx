@@ -1,4 +1,5 @@
 'use client';
+
 import { useCart } from '@context/CartContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Trash2 } from 'lucide-react';
@@ -19,17 +20,16 @@ const CartDrawer = () => {
 
   const [coupon, setCoupon] = useState('');
 
-  // Nuevo: subtotal original antes del descuento
   const subtotalOriginal = cartItems.reduce((acc, item) => acc + item.originalPrice * item.quantity, 0);
   const subtotalConDescuento = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const discountAmount = subtotalOriginal - subtotalConDescuento;
-  const total = subtotalConDescuento;
+  const descuentoPorCantidad = subtotalOriginal - subtotalConDescuento;
+  const descuentoPorCupon = subtotalConDescuento * discount;
+  const total = subtotalConDescuento - descuentoPorCupon;
 
   return (
     <AnimatePresence>
       {isCartOpen && (
         <>
-          {/* Fondo oscuro */}
           <motion.div
             className="fixed inset-0 bg-black bg-opacity-40 z-40"
             initial={{ opacity: 0 }}
@@ -38,7 +38,6 @@ const CartDrawer = () => {
             onClick={closeCart}
           />
 
-          {/* Carrito deslizante */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -58,9 +57,9 @@ const CartDrawer = () => {
                 <p className="text-gray-500">Tu carrito está vacío.</p>
               ) : (
                 cartItems.map((item) => {
-                  const itemOriginalSubtotal = item.originalPrice * item.quantity;
-                  const itemDiscount = itemOriginalSubtotal - item.price * item.quantity;
-                  const itemTotal = item.price * item.quantity;
+                  const originalSubtotal = item.originalPrice * item.quantity;
+                  const currentSubtotal = item.price * item.quantity;
+                  const diff = originalSubtotal - currentSubtotal;
 
                   return (
                     <div key={item.id} className="border-b pb-2">
@@ -72,14 +71,24 @@ const CartDrawer = () => {
                         />
                         <div className="ml-2 flex-1">
                           <h3 className="font-medium text-sm">{item.name}</h3>
+                          {item.variantLabel && (
+                            <p className="text-xs text-gray-500">{item.variantLabel}</p>
+                          )}
 
-                          <div className="text-xs text-gray-500 space-y-0.5">
-                            <p>Precio original: ${itemOriginalSubtotal.toFixed(2)}</p>
-                            {itemDiscount > 0 && (
+                          <div className="text-xs text-gray-500 space-y-0.5 mt-1">
+                            <p>Precio original: ${originalSubtotal.toFixed(2)}</p>
+                            {diff > 0 && (
                               <>
-                                <p>Descuento: -${itemDiscount.toFixed(2)}</p>
-                                <p className="text-[#A084CA] font-medium">Total con descuento: ${itemTotal.toFixed(2)}</p>
+                                <p>Descuento: -${diff.toFixed(2)}</p>
+                                <p className="text-[#A084CA] font-medium">
+                                  Total con descuento: ${currentSubtotal.toFixed(2)}
+                                </p>
                               </>
+                            )}
+                            {!diff && (
+                              <p className="text-[#A084CA] font-medium">
+                                Total: ${currentSubtotal.toFixed(2)}
+                              </p>
                             )}
                           </div>
 
@@ -89,7 +98,7 @@ const CartDrawer = () => {
                               disabled={item.quantity === 1}
                               className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 text-sm"
                             >
-                              -
+                              −
                             </button>
                             <span>{item.quantity}</span>
                             <button
@@ -114,24 +123,23 @@ const CartDrawer = () => {
               )}
             </div>
 
-            {/* Totales */}
             <div className="mt-4 border-t pt-4 text-sm text-gray-700 space-y-1">
               <div className="flex justify-between">
                 <span>Subtotal original:</span>
                 <span>${subtotalOriginal.toFixed(2)}</span>
               </div>
 
-              {subtotalOriginal > subtotalConDescuento && (
+              {descuentoPorCantidad > 0 && (
                 <div className="flex justify-between text-[#A084CA]">
                   <span>Descuento automático:</span>
-                  <span>- ${ (subtotalOriginal - subtotalConDescuento).toFixed(2) }</span>
+                  <span>- ${descuentoPorCantidad.toFixed(2)}</span>
                 </div>
               )}
 
               {discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Descuento cupón ({(discount * 100).toFixed(0)}%):</span>
-                  <span>- ${discountAmount.toFixed(2)}</span>
+                  <span>- ${descuentoPorCupon.toFixed(2)}</span>
                 </div>
               )}
 
@@ -141,9 +149,6 @@ const CartDrawer = () => {
               </div>
             </div>
 
-
-
-            {/* Cupón */}
             <div className="mt-4">
               <input
                 type="text"
@@ -160,7 +165,6 @@ const CartDrawer = () => {
               </button>
             </div>
 
-            {/* Acciones finales */}
             <div className="mt-4 space-y-2">
               <button
                 onClick={clearCart}
