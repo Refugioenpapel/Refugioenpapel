@@ -23,7 +23,10 @@ export default function ProductForm() {
   const [discount, setDiscount] = useState('');
   const [isPhysical, setIsPhysical] = useState(false);
   const [bulkDiscounts, setBulkDiscounts] = useState<BulkDiscount[]>([]);
-  const [variantList, setVariantList] = useState<Variant[]>([ { name: 'Refugio Mini', price: 0 }, { name: 'Refugio Grande', price: 0 } ]);
+  const [variantList, setVariantList] = useState<Variant[]>([
+    { name: 'Refugio Mini', price: 0 },
+    { name: 'Refugio Grande', price: 0 }
+  ]);
   const [category, setCategory] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [addingCategory, setAddingCategory] = useState(false);
@@ -43,7 +46,14 @@ export default function ProductForm() {
 
   const updateVariant = (index: number, field: keyof Variant, value: string) => {
     const updated = [...variantList];
-    updated[index][field] = field === 'price' ? Number(value) : value;
+    const variant = updated[index];
+
+    if (field === 'price') {
+      variant.price = Number(value);
+    } else if (field === 'name') {
+      variant.name = value;
+    }
+
     setVariantList(updated);
   };
 
@@ -57,7 +67,14 @@ export default function ProductForm() {
 
   const updateBulkDiscount = (index: number, field: keyof BulkDiscount, value: string) => {
     const updated = [...bulkDiscounts];
-    updated[index][field] = field === 'price' || field === 'min' ? Number(value) : value === '' ? null : Number(value);
+    const discount = updated[index];
+
+    if (field === 'min' || field === 'price') {
+      discount[field] = Number(value);
+    } else if (field === 'max') {
+      discount.max = value === '' ? null : Number(value);
+    }
+
     setBulkDiscounts(updated);
   };
 
@@ -119,8 +136,8 @@ export default function ProductForm() {
         variants: variantList,
         images: imageUrls,
         is_physical: isPhysical,
-        bulk_discounts: isPhysical ? bulkDiscounts : null,
-      },
+        bulk_discounts: isPhysical ? bulkDiscounts : null
+      }
     ]);
 
     if (insertError) {
