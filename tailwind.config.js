@@ -6,6 +6,19 @@ module.exports = {
     "./src/components/**/*.{js,ts,jsx,tsx}",
     "./src/app/globals.css", // opcional, pero recomendado
   ],
+  safelist: [
+    'bg-red-400',
+    'bg-red-200',
+    'bg-blue-200',
+    'bg-green-200',
+    'bg-yellow-400',
+    'text-gray-600',
+    'text-red-800',
+    'text-blue-800',
+    'text-green-800',
+    'text-yellow-800',
+    // agregá todos los que uses dinámicamente
+  ],
   theme: {
     extend: {
       colors: {
