@@ -1,4 +1,5 @@
-"use client";
+'use client';
+
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -34,13 +35,10 @@ export default function BuscarPage() {
 
             const minVariantPrice = hasVariants
               ? Math.min(...variants.map((v: { price: number }) => v.price))
-              : null;
+              : product.price;
 
-            const discountedVariantPrice = minVariantPrice
-              ? minVariantPrice * 0.8
-              : null;
-
-            const hasDiscount = hasVariants || product.original_price;
+            // No aplicamos descuento por ahora, solo mostramos el precio sin cambios
+            const finalPrice = minVariantPrice;
 
             return (
               <Link
@@ -49,9 +47,10 @@ export default function BuscarPage() {
                 className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow hover:shadow-lg transition duration-300 flex flex-col relative"
               >
                 {/* Badge de descuento */}
-                {hasDiscount && (
+                {/* Se ha quitado el descuento para mostrarlo solo cuando se decida usarlo */}
+                {product.discount && (
                   <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
-                    20% OFF
+                    {product.discount}% OFF
                   </span>
                 )}
 
@@ -77,22 +76,15 @@ export default function BuscarPage() {
                   <div className="mt-2">
                     {hasVariants ? (
                       <>
-                        <span className="text-sm text-gray-400 line-through block">
-                          {!product.is_physical && 'Desde'} ${minVariantPrice?.toFixed(2)}
-                        </span>
+                        {/* Solo mostramos el precio sin tachar */}
                         <span className="text-base font-bold">
-                          {!product.is_physical && '🔥 Desde'} ${discountedVariantPrice?.toFixed(2)}
+                          {!product.is_physical && '🔥 Desde'} ${finalPrice?.toFixed(2)}
                         </span>
                       </>
                     ) : (
                       <>
-                        {product.original_price && (
-                          <span className="text-sm text-gray-400 line-through block">
-                            ${product.original_price.toFixed(2)}
-                          </span>
-                        )}
                         <span className="text-base font-bold text-pink-600">
-                          ${product.price?.toFixed(2) ?? '—'}
+                          ${finalPrice?.toFixed(2) ?? '—'}
                         </span>
                       </>
                     )}

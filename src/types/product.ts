@@ -19,6 +19,9 @@ export interface Product {
   // ✅ Si el producto es físico (Souvenir)
   is_physical?: boolean;
 
+  // ✅ Si el producto es destacado
+  is_featured?: boolean;
+
   // ✅ Descuentos por cantidad (sólo para productos físicos)
   bulk_discounts?: {
     min: number;        // cantidad mínima

@@ -1,8 +1,9 @@
 import { supabase } from "@lib/supabaseClient";
 import type { Product } from "types/product";
 
-export async function fetchProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
+// Acepta filtros opcionales: por categoría o por destacados
+export async function fetchProducts(options?: { category?: string; featuredOnly?: boolean }): Promise<Product[]> {
+  let query = supabase
     .from("products")
     .select(`
       id,
@@ -17,8 +18,19 @@ export async function fetchProducts(): Promise<Product[]> {
       images,
       variants,
       is_physical,
-      bulk_discounts
+      bulk_discounts,
+      is_featured
     `);
+
+  if (options?.category) {
+    query = query.eq("category", options.category);
+  }
+
+  if (options?.featuredOnly) {
+    query = query.eq("is_featured", true);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Error fetching products:", error);
@@ -44,7 +56,8 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
       images,
       variants,
       is_physical,
-      bulk_discounts
+      bulk_discounts,
+      is_featured
     `)
     .eq("slug", slug)
     .single();

@@ -1,4 +1,5 @@
-'use client'
+'use client';
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import ProductCarousel from "@components/ProductCarousel";
@@ -12,23 +13,26 @@ const logos = [
 
 export default function Home() {
   const [index, setIndex] = useState(0);
-  const [fade, setFade] = useState(true); // Nuevo: para manejar opacidad
-  const [products, setProducts] = useState<any[]>([]);
+  const [fade, setFade] = useState(true);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setFade(false); // inicia el fade out
-
+      setFade(false);
       setTimeout(() => {
-        setIndex((prev) => (prev + 1) % logos.length); // cambio de slide
-        setFade(true); // inicia el fade in
-      }, 300); // duración del fade out
-    }, 5000); // cambio cada 5 segundos
+        setIndex((prev) => (prev + 1) % logos.length);
+        setFade(true);
+      }, 300);
+    }, 5000);
 
     const getProducts = async () => {
-      const data = await fetchProducts();
-      setProducts(data);
+      const all = await fetchProducts(); // Todos los productos
+      const featured = await fetchProducts({ featuredOnly: true }); // Solo destacados
+
+      setAllProducts(all);
+      setFeaturedProducts(featured);
       setLoading(false);
     };
 
@@ -38,7 +42,7 @@ export default function Home() {
 
   return (
     <div className="pt-0 text-center py-10">
-      {/* Carrusel con efecto fade */}
+      {/* Carrusel principal con fade */}
       <div
         className={`mb-12 transition-opacity duration-500 ease-in-out w-full overflow-hidden ${
           fade ? "opacity-100" : "opacity-0"
@@ -74,12 +78,25 @@ export default function Home() {
         Creá momentos únicos con diseños imprimibles llenos de ternura, color y amor
       </p>
 
-      <section className="px-4 sm:px-8 md:px-16 lg:px-32 mt-12">
+      {/* Carrusel de productos destacados */}
+      <section className="px-4 sm:px-8 md:px-16 lg:px-32 mt-16">
+        <h2 className="text-xl sm:text-2xl font-bold text-[#D85B9C] mb-6 text-center">✨ Productos destacados</h2>
+        {loading ? (
+          <p className="text-center text-gray-500">Cargando productos...</p>
+        ) : featuredProducts.length > 0 ? (
+          <ProductCarousel products={featuredProducts} />
+        ) : (
+          <p className="text-center text-gray-400">No hay productos destacados por ahora.</p>
+        )}
+      </section>
+
+      {/* Carrusel de todos los productos */}
+      <section className="px-4 sm:px-8 md:px-16 lg:px-32 mt-16">
         <h2 className="text-2xl font-bold text-[#D85B9C] mb-6 text-center">Nuestros productos</h2>
         {loading ? (
           <p className="text-center text-gray-500">Cargando productos...</p>
         ) : (
-          <ProductCarousel products={products} />
+          <ProductCarousel products={allProducts} />
         )}
       </section>
     </div>

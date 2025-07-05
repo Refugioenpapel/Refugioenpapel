@@ -7,6 +7,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import type { Product } from "../types/product";
+import { getCategoryBadge } from "@lib/productBadges";
 
 interface ProductCarouselProps {
   products: Product[];
@@ -49,24 +50,26 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
 
           const discountedPrice = (basePrice * (1 - discount / 100)).toFixed(2);
 
+          const badge = getCategoryBadge(product.category);
+
           return (
             <SwiperSlide key={product.id}>
               <Link href={`/productos/${product.slug}`}>
                 <div className="relative bg-white p-4 sm:p-6 rounded-xl shadow-md h-full min-h-[420px] flex flex-col justify-between hover:shadow-lg transition cursor-pointer">
-                  
-                  {/* Badge de descuento */}
-                    {hasDiscount && (
-                      <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
-                        {discount}% OFF
-                      </span>
-                    )}
 
-                    {/* Badge por cantidad para productos físicos */}
-                    {product.is_physical && (
-                      <span className="absolute top-2 left-2 bg-red-200 text-gray-800 text-[10px] font-medium px-2 py-[2px] rounded z-10 shadow-sm">
-                        Descuento desde 10 u.
-                      </span>
-                    )}
+                  {/* Badge de descuento */}
+                  {hasDiscount && (
+                    <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
+                      {discount}% OFF
+                    </span>
+                  )}
+
+                  {/* Badge de categoría (ej. souvenirs, decoración) */}
+                  {badge && (
+                    <span className={`absolute top-2 left-2 z-10 ${badge.className}`}>
+                      {badge.text}
+                    </span>
+                  )}
 
                   {/* Imagen */}
                   {product.images && product.images.length > 0 ? (
@@ -86,7 +89,9 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
                   {/* Título y descripción */}
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-600">{product.name}</h3>
                   {product.description && (
-                    <p className="text-sm sm:text-base text-gray-600 line-clamp-1">{product.description} {!product.is_physical && '🖨️'}</p>
+                    <p className="text-sm sm:text-base text-gray-600 line-clamp-1">
+                      {product.description} {!product.is_physical && '🖨️'}
+                    </p>
                   )}
 
                   {/* Precios */}

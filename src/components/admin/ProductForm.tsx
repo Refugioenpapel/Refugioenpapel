@@ -32,6 +32,7 @@ export default function ProductForm() {
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [imageFile, setImageFile] = useState<File[]>([]);
+  const [isFeatured, setIsFeatured] = useState(false);  // Nuevo estado para "Producto destacado"
   const router = useRouter();
 
   useEffect(() => {
@@ -136,7 +137,8 @@ export default function ProductForm() {
         variants: variantList,
         images: imageUrls,
         is_physical: isPhysical,
-        bulk_discounts: isPhysical ? bulkDiscounts : null
+        bulk_discounts: isPhysical ? bulkDiscounts : null,
+        is_featured: isFeatured  // Enviamos el estado de "destacado"
       }
     ]);
 
@@ -199,6 +201,11 @@ export default function ProductForm() {
           <button type="button" onClick={() => setAddingCategory(true)} className="mt-2 text-sm text-purple-600 hover:underline">+ Agregar categoría</button>
         )}
       </div>
+
+      {/* Checkbox para marcar como destacado */}
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} /> ¿Es un producto destacado?
+      </label>
 
       <div className="space-y-2">
         <label className="block font-medium">Variantes</label>
