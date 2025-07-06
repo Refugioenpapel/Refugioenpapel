@@ -205,6 +205,9 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
                   {productosOpen && (
                     <div className="ml-4 mt-2 flex flex-col space-y-2 text-sm text-gray-700">
+                      <Link href="/productos?categoria=souvenirs" onClick={() => setMenuOpen(false)}>
+                        Souvenirs
+                      </Link>
                       <Link href="/productos?categoria=decoracion-de-fiesta" onClick={() => setMenuOpen(false)}>
                         Decoración de Fiesta
                       </Link>
@@ -213,9 +216,6 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
                       </Link>
                       <Link href="/productos?categoria=invitaciones-digitales" onClick={() => setMenuOpen(false)}>
                         Invitaciones Digitales
-                      </Link>
-                      <Link href="/productos?categoria=souvenirs" onClick={() => setMenuOpen(false)}>
-                        Souvenirs
                       </Link>
                     </div>
                   )}

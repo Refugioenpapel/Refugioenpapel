@@ -120,6 +120,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           >
             Agregar al carrito
           </button>
+          {/* Mensaje visible solo para productos de categoría "souvenirs" */}
+          {product.category === 'souvenirs' && (
+            <p className="mt-4 text-sm text-gray-600 italic">
+              ⏳ Tiempo estimado de producción: <strong>15 días hábiles.</strong>
+            </p>
+          )}
         </div>
       </div>
 

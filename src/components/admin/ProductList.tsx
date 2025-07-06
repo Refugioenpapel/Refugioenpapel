@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 
 interface Product {
   id: number;
@@ -13,13 +14,18 @@ interface Product {
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
-    const { data, error } = await supabase.from('products').select('*').order('id', { ascending: false });
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('id', { ascending: false });
+
     if (!error && data) setProducts(data);
     setLoading(false);
   };
@@ -33,13 +39,21 @@ export default function ProductList() {
       await supabase.storage.from('productos').remove([imagePath]);
     }
 
-    const { error } = await supabase.from('products').delete().eq('id', product.id);
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', product.id);
+
     if (error) {
       console.error('Error al eliminar producto:', error);
       return;
     }
 
     fetchProducts();
+  };
+
+  const handleEdit = (id: number) => {
+    router.push(`/admin/editar/${id}`);
   };
 
   return (
@@ -50,12 +64,28 @@ export default function ProductList() {
       ) : (
         <ul className="space-y-4">
           {products.map((product) => (
-            <li key={product.id} className="border p-4 rounded shadow flex justify-between items-center">
+            <li
+              key={product.id}
+              className="border p-4 rounded shadow flex justify-between items-center"
+            >
               <div>
                 <p className="font-bold">{product.name}</p>
                 <p className="text-sm text-gray-500">{product.slug}</p>
               </div>
-              <button onClick={() => handleDelete(product)} className="text-red-600 hover:underline">Eliminar</button>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleEdit(product.id)}
+                  className="text-blue-600 hover:underline"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(product)}
+                  className="text-red-600 hover:underline"
+                >
+                  Eliminar
+                </button>
+              </div>
             </li>
           ))}
         </ul>

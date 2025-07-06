@@ -15,7 +15,11 @@ type BulkDiscount = {
   price: number;
 };
 
-export default function ProductForm() {
+type ProductFormProps = {
+  existingProduct?: any;
+};
+
+export default function ProductForm({ existingProduct }: ProductFormProps) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
@@ -23,17 +27,29 @@ export default function ProductForm() {
   const [discount, setDiscount] = useState('');
   const [isPhysical, setIsPhysical] = useState(false);
   const [bulkDiscounts, setBulkDiscounts] = useState<BulkDiscount[]>([]);
-  const [variantList, setVariantList] = useState<Variant[]>([
-    { name: 'Refugio Mini', price: 0 },
-    { name: 'Refugio Grande', price: 0 }
-  ]);
+  const [variantList, setVariantList] = useState<Variant[]>([ { name: 'Refugio Mini', price: 0 }, { name: 'Refugio Grande', price: 0 } ]);
   const [category, setCategory] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [imageFile, setImageFile] = useState<File[]>([]);
-  const [isFeatured, setIsFeatured] = useState(false);  // Nuevo estado para "Producto destacado"
+  const [isFeatured, setIsFeatured] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (existingProduct) {
+      setName(existingProduct.name);
+      setSlug(existingProduct.slug);
+      setDescription(existingProduct.description);
+      setPrice(existingProduct.price.toString());
+      setDiscount(existingProduct.discount?.toString() || '');
+      setIsPhysical(existingProduct.is_physical);
+      setCategory(existingProduct.category);
+      setVariantList(existingProduct.variants || []);
+      setBulkDiscounts(existingProduct.bulk_discounts || []);
+      setIsFeatured(existingProduct.is_featured);
+    }
+  }, [existingProduct]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -48,18 +64,12 @@ export default function ProductForm() {
   const updateVariant = (index: number, field: keyof Variant, value: string) => {
     const updated = [...variantList];
     const variant = updated[index];
-
-    if (field === 'price') {
-      variant.price = Number(value);
-    } else if (field === 'name') {
-      variant.name = value;
-    }
-
+    if (field === 'price') variant.price = Number(value);
+    else if (field === 'name') variant.name = value;
     setVariantList(updated);
   };
 
   const addVariant = () => setVariantList([...variantList, { name: '', price: 0 }]);
-
   const removeVariant = (index: number) => {
     const updated = [...variantList];
     updated.splice(index, 1);
@@ -69,18 +79,12 @@ export default function ProductForm() {
   const updateBulkDiscount = (index: number, field: keyof BulkDiscount, value: string) => {
     const updated = [...bulkDiscounts];
     const discount = updated[index];
-
-    if (field === 'min' || field === 'price') {
-      discount[field] = Number(value);
-    } else if (field === 'max') {
-      discount.max = value === '' ? null : Number(value);
-    }
-
+    if (field === 'min' || field === 'price') discount[field] = Number(value);
+    else if (field === 'max') discount.max = value === '' ? null : Number(value);
     setBulkDiscounts(updated);
   };
 
   const addBulkDiscount = () => setBulkDiscounts([...bulkDiscounts, { min: 0, max: null, price: 0 }]);
-
   const removeBulkDiscount = (index: number) => {
     const updated = [...bulkDiscounts];
     updated.splice(index, 1);
@@ -101,59 +105,62 @@ export default function ProductForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!imageFile.length) return alert('Selecciona al menos una imagen');
-
     const discountValue = Number(discount);
     if (discount && (discountValue < 0 || discountValue > 100)) {
       alert('El descuento debe estar entre 0 y 100');
       return;
     }
 
-    const imageUrls: string[] = [];
+    let imageUrls: string[] = existingProduct?.images || [];
 
     for (const file of imageFile) {
       const fileName = `${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('productos')
-        .upload(fileName, file, { upsert: false });
-
+      const { error: uploadError } = await supabase.storage.from('productos').upload(fileName, file, { upsert: false });
       if (uploadError) {
         console.error('Error al subir la imagen:', uploadError);
         return;
       }
-
       const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${fileName}`;
       imageUrls.push(imageUrl);
     }
 
-    const { error: insertError } = await supabase.from('products').insert([
-      {
-        name,
-        slug,
-        description,
-        price: Number(price),
-        discount: discount ? discountValue : null,
-        category,
-        variants: variantList,
-        images: imageUrls,
-        is_physical: isPhysical,
-        bulk_discounts: isPhysical ? bulkDiscounts : null,
-        is_featured: isFeatured  // Enviamos el estado de "destacado"
-      }
-    ]);
+    const productData = {
+      name,
+      slug,
+      description,
+      price: Number(price),
+      discount: discount ? discountValue : null,
+      category,
+      variants: variantList,
+      images: imageUrls,
+      is_physical: isPhysical,
+      bulk_discounts: isPhysical ? bulkDiscounts : null,
+      is_featured: isFeatured
+    };
 
-    if (insertError) {
-      console.error('Error al guardar el producto:', insertError);
-      return;
+    if (existingProduct) {
+      const { error: updateError } = await supabase.from('products').update(productData).eq('id', existingProduct.id);
+      if (updateError) {
+        console.error('Error al actualizar producto:', updateError);
+        return;
+      }
+      alert('Producto actualizado correctamente');
+    } else {
+      if (!imageFile.length) return alert('Selecciona al menos una imagen');
+      const { error: insertError } = await supabase.from('products').insert([productData]);
+      if (insertError) {
+        console.error('Error al guardar el producto:', insertError);
+        return;
+      }
+      alert('Producto agregado correctamente');
     }
 
-    alert('Producto agregado correctamente');
     router.push('/admin');
   };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Nuevo producto</h1>
+      <h1 className="text-2xl font-bold">{existingProduct ? 'Editar producto' : 'Nuevo producto'}</h1>
 
       <input type="text" placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} className="w-full border p-2 rounded" required />
 
@@ -202,7 +209,6 @@ export default function ProductForm() {
         )}
       </div>
 
-      {/* Checkbox para marcar como destacado */}
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} /> ¿Es un producto destacado?
       </label>
@@ -219,9 +225,11 @@ export default function ProductForm() {
         <button type="button" onClick={addVariant} className="text-sm text-purple-600 hover:underline">+ Agregar variante</button>
       </div>
 
-      <input type="file" accept="image/*" multiple onChange={(e) => setImageFile(e.target.files ? Array.from(e.target.files) : [])} className="w-full" required />
+      <input type="file" accept="image/*" multiple onChange={(e) => setImageFile(e.target.files ? Array.from(e.target.files) : [])} className="w-full" />
 
-      <button type="submit" className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Guardar producto</button>
+      <button type="submit" className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+        {existingProduct ? 'Actualizar producto' : 'Guardar producto'}
+      </button>
     </form>
   );
 }
