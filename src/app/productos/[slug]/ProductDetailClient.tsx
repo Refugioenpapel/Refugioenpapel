@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useCart } from '@context/CartContext';
 import ProductImageCarousel from '@components/ProductImageCarousel';
 import type { Product } from 'types/product';
-import { descriptionsByCategory } from '@data/sharedDescriptions';
+import { descriptionsByCategory, descriptionsBySlug } from '@data/sharedDescriptions';
 
 export default function ProductDetailClient({ product }: { product: Product }) {
   const defaultVariant =
@@ -15,7 +15,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedVariant, setSelectedVariant] = useState(defaultVariant);
   const [quantity, setQuantity] = useState(1);
   const { addToCart, openCart } = useCart();
-  const longDescriptionHTML = descriptionsByCategory[product.category] || '';
+  const longDescriptionHTML =
+  descriptionsBySlug[product.slug] || descriptionsByCategory[product.category] || '';
 
   const [showZoom, setShowZoom] = useState(false);
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);

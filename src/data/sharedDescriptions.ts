@@ -1,5 +1,22 @@
 // src/data/sharedDescriptions.ts
 
+export const descriptionsBySlug: Record<string, string> = {
+  'pizarra-1': `
+  ✨ <strong>Pizarra personalizada con temática a elección</strong><br />
+  Una opción práctica, divertida y funcional para acompañar juegos, eventos o momentos del día a día.<br /><br />
+  Nuestras pizarras están pensadas para que los más peques puedan escribir, dibujar y volver a empezar cuantas veces quieran. Se usan con marcador al agua (¡incluido!) y se borran fácilmente con el borrador que viene incorporado en la tapa.<br /><br />
+
+  <strong>🎁 ¿Qué incluye?</strong><br />
+  ✔ Pizarra con diseño personalizado (temática a elección)<br />
+  ✔ 1 marcador al agua con borrador en la tapa<br />
+  ✔ Reverso personalizable con una de estas opciones:<br />
+  ▫️ <strong>Tateti:</strong> para jugar una y otra vez<br />
+  ▫️ <strong>Dibujo para colorear:</strong> ilustración fija para pintar con lo que más te guste<br />
+  ▫️ <strong>Imantado:</strong> ideal para pegar en la heladera o superficies metálicas<br /><br />
+  Un souvenir útil, distinto y con detalles pensados 100% para vos ❤️
+  `,
+};
+
 export const descriptionsByCategory: Record<string, string> = {
   'decoracion-de-fiesta': `
   <strong style="color:red;"><br />***¡IMPORTANTE!***</strong><br />
@@ -84,7 +101,7 @@ export const descriptionsByCategory: Record<string, string> = {
     <li>Invitación Digital</li>
   </ul>
   `,
-    'souvenirs': `
+  'souvenirs': `
   <strong><br />Álbum de Figuritas Personalizado</strong><br />
 Ideal para cumpleaños, reuniones familiares o eventos escolares.<br />
 
