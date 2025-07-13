@@ -7,7 +7,7 @@ import { fetchProducts } from "@lib/supabase/products";
 
 // Carrusel: imágenes y videos
 const logos = [
-  "/carrusel/banner-carrusel.jpg",
+  "/carrusel/banner-carrusel.png",
   "/carrusel/banner-video1.mp4"
 ];
 
