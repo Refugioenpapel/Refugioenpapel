@@ -61,13 +61,15 @@ export default function Home() {
           <Image
             src={logos[index]}
             alt={`Slide ${index + 1}`}
-            width={1920}
-            height={800}
+            width={1500}
+            height={400}
             className="mx-auto shadow-lg object-contain"
           />
         )}
       </div>
 
+      {/* Lema, slogan */}
+      {/*
       <h1 className="px-4 sm:px-8 max-w-4xl mx-auto text-xl sm:text-2xl md:text-6xl font-dancing font-bold mb-4 text-[#555555]">
         🌈Bienvenid@ a este rincón
       </h1>
@@ -77,6 +79,7 @@ export default function Home() {
       <p className="max-w-md sm:max-w-xl md:max-w-3xl text-base sm:text-lg md:text-4xl mx-auto font-dancing text-[#A56ABF]">
         Creá momentos únicos con diseños imprimibles llenos de ternura, color y amor
       </p>
+      */}
 
       {/* Carrusel de productos destacados */}
       <section className="px-4 sm:px-8 md:px-16 lg:px-32 mt-16">

@@ -77,15 +77,15 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
                   {hasDiscount ? (
                     <>
                       <span className="text-gray-400 line-through text-sm block">
-                        Desde ${price.toFixed(2)}
+                        {!product.is_physical && 'Desde'} ${price.toFixed(2)}
                       </span>
                       <span className="text-lg font-bold text-gray-600">
-                        🔥 Desde ${discountedPrice}
+                        {!product.is_physical && '🔥 Desde'} ${discountedPrice}
                       </span>
                     </>
                   ) : (
                     <span className="text-lg font-bold text-gray-600">
-                      Desde ${price.toFixed(2)}
+                      {!product.is_physical && 'Desde'} ${price.toFixed(2)}
                     </span>
                   )}
                 </div>
