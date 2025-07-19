@@ -31,14 +31,27 @@ export default function ProductList() {
   };
 
   const handleDelete = async (product: Product) => {
-    const confirm = window.confirm(`¿Eliminar "${product.name}" y su imagen?`);
+    const confirm = window.confirm(`¿Eliminar "${product.name}" y todas sus imágenes?`);
     if (!confirm) return;
 
-    const imagePath = product.images?.[0]?.split('/').pop();
-    if (imagePath) {
-      await supabase.storage.from('productos').remove([imagePath]);
+    // Eliminar todas las imágenes asociadas al producto
+    if (product.images?.length > 0) {
+      const imagePaths = product.images.map((url) => {
+        const parts = url.split('/');
+        return parts.slice(parts.indexOf('productos') + 1).join('/');
+      });
+
+      const { error: storageError } = await supabase
+        .storage
+        .from('productos')
+        .remove(imagePaths);
+
+      if (storageError) {
+        console.error('Error al eliminar imágenes del storage:', storageError);
+      }
     }
 
+    // Eliminar el producto de la tabla
     const { error } = await supabase
       .from('products')
       .delete()

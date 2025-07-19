@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@context/CartContext';
 import ProductImageCarousel from '@components/ProductImageCarousel';
 import type { Product } from 'types/product';
@@ -16,25 +16,35 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const { addToCart, openCart } = useCart();
   const longDescriptionHTML =
-  descriptionsBySlug[product.slug] || descriptionsByCategory[product.category] || '';
+    descriptionsBySlug[product.slug] || descriptionsByCategory[product.category] || '';
 
   const [showZoom, setShowZoom] = useState(false);
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
 
+  // 🔁 Si cambia el producto (por ID o slug), actualizamos la variante seleccionada
+  useEffect(() => {
+    const updatedDefault =
+      product.variants && product.variants.length > 0
+        ? product.variants[0]
+        : { label: 'Único', price: product.price ?? 0 };
+    setSelectedVariant(updatedDefault);
+    setQuantity(1); // Reinicia cantidad también si querés
+  }, [product.id, product.slug]);
+
   const handleAddToCart = () => {
-    addToCart({
-      id: `${product.id}-${selectedVariant.label}`,
-      name: product.name,
-      variantLabel: selectedVariant.label,
-      originalPrice: selectedVariant.price,
-      price: selectedVariant.price, // Se ajustará luego en el carrito si corresponde descuento
-      quantity,
-      image: product.images[0],
-      is_physical: product.is_physical,
-      bulk_discounts: product.bulk_discounts,
-    });
-    openCart();
-  };
+  addToCart({
+    id: `${product.id}-${selectedVariant.label}`,
+    name: product.name,
+    variantLabel: selectedVariant.label,
+    originalPrice: selectedVariant.price, // ✅ Precio original por unidad
+    price: selectedVariant.price,         // ✅ No aplicar descuento acá
+    quantity,
+    image: product.images[0],
+    is_physical: product.is_physical,
+    bulk_discounts: product.bulk_discounts, // ✅ Se pasa esto para que el carrito calcule
+  });
+  openCart();
+};
 
   const handlePrev = () => {
     if (zoomIndex !== null) {
@@ -71,7 +81,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           <p className="text-gray-700 mb-4">{product.description}</p>
 
           <p className="text-lg font-bold text-gray-800 mb-4">
-          ${selectedVariant.price.toFixed(2)}
+            ${selectedVariant.price.toFixed(2)}
           </p>
 
           {product.variants && product.variants.length > 0 && (
@@ -121,7 +131,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           >
             Agregar al carrito
           </button>
-          {/* Mensaje visible solo para productos de categoría "souvenirs" */}
+
           {product.category === 'souvenirs' && (
             <p className="mt-4 text-sm text-gray-600 italic">
               ⏳ Tiempo estimado de producción: <strong>15 días hábiles.</strong>
@@ -151,10 +161,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           }}
           tabIndex={-1}
         >
-          <div
-            className="relative"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setShowZoom(false)}
               className="absolute top-4 right-4 text-white text-3xl font-bold"
