@@ -16,7 +16,7 @@ type CartItem = {
   originalPrice: number;
   price: number;
   quantity: number;
-  weight?: number; // peso en gramos (opcional)
+  weight?: number;
   image: string;
   is_physical?: boolean;
   bulk_discounts?: BulkDiscount[];
@@ -100,27 +100,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       return match ? match.price : item.originalPrice;
     }
-    return item.price; // para digitales, ya viene con descuento aplicado
+    return item.price;
   };
 
   const addToCart = (item: CartItem) => {
-  setCartItems((prevItems) => {
-    const existing = prevItems.find(i => i.id === item.id);
-    const newQuantity = existing ? existing.quantity + item.quantity : item.quantity;
-    const newPrice = calculatePrice(item, newQuantity);
+    setCartItems((prevItems) => {
+      const existing = prevItems.find(i => i.id === item.id);
+      const newQuantity = existing ? existing.quantity + item.quantity : item.quantity;
+      const newPrice = calculatePrice(item, newQuantity);
 
-    if (existing) {
-      return prevItems.map(i =>
-        i.id === item.id
-          ? { ...i, quantity: newQuantity, price: newPrice }
-          : i
-      );
-    } else {
-      return [...prevItems, { ...item, price: newPrice }];
-    }
-  });
-};
-
+      if (existing) {
+        return prevItems.map(i =>
+          i.id === item.id
+            ? { ...i, quantity: newQuantity, price: newPrice }
+            : i
+        );
+      } else {
+        return [...prevItems, { ...item, price: newPrice }];
+      }
+    });
+  };
 
   const removeFromCart = (id: string) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
@@ -171,10 +170,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const applyCoupon = (code: string) => {
-    if (code === 'DESCUENTO10') {
-      setDiscount(0.1);
+    const normalized = code.trim().toLowerCase();
+
+    if (normalized === 'emilia') {
+      setDiscount(0.1); // 10%
     } else {
-      setDiscount(0);
+      setDiscount(0); // no válido
     }
   };
 
