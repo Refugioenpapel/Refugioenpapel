@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { fetchProductBySlug } from "@lib/supabase/products";
 import ProductDetailClient from "./ProductDetailClient";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProductDetailPage({ params }: { params: { slug: string } }) {
   const product = await fetchProductBySlug(params.slug);
 
