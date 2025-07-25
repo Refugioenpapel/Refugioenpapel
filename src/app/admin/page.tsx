@@ -18,19 +18,28 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser()
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
 
-      if (error || !user) {
-        router.push('/') // No logueado
+      if (sessionError || !sessionData.session?.user) {
+        console.log('Sesión no encontrada o error:', sessionError)
+        router.push('/')
         return
       }
 
-      const role = user.user_metadata?.role
-      if (role !== 'admin') {
-        router.push('/') // No autorizado
+      const user = sessionData.session.user
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('rol')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError || profile?.rol !== 'admin') {
+        console.log('Acceso denegado: no es admin o error en perfil', profileError)
+        router.push('/')
         return
       }
 
+      console.log('Acceso concedido: admin')
       setIsAdmin(true)
       setCheckingAccess(false)
     }
