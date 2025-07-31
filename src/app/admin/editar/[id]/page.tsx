@@ -1,4 +1,3 @@
-// app/admin/editar/[id]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,10 +6,14 @@ import { supabase } from '@lib/supabaseClient';
 import ProductForm from '@components/admin/ProductForm';
 
 export default function EditarProductoPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
+
   const [product, setProduct] = useState(null);
 
   useEffect(() => {
+    if (!id) return;
+
     async function fetchProduct() {
       const { data, error } = await supabase
         .from('products')
@@ -20,6 +23,7 @@ export default function EditarProductoPage() {
 
       if (!error && data) setProduct(data);
     }
+
     fetchProduct();
   }, [id]);
 

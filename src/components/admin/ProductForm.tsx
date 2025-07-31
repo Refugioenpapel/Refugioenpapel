@@ -1,3 +1,5 @@
+// components/admin/ProductForm.tsx
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -114,15 +116,24 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
     let imageUrls: string[] = existingProduct?.images || [];
 
     for (const file of imageFile) {
-      const fileName = `${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from('productos').upload(fileName, file, { upsert: false });
-      if (uploadError) {
-        console.error('Error al subir la imagen:', uploadError);
-        return;
-      }
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos/${fileName}`;
-      imageUrls.push(imageUrl);
-    }
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch('/api/upload-image', {
+    method: 'POST',
+    body: formData,
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    console.error('Error al subir imagen a Cloudinary:', data);
+    return;
+  }
+
+  imageUrls.push(data.url);
+}
+
 
     const productData = {
       name,

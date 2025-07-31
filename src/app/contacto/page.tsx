@@ -1,3 +1,5 @@
+// app/contacto/page.tsx
+
 'use client';
 import { useRef, useState } from 'react';
 import emailjs from '@emailjs/browser';

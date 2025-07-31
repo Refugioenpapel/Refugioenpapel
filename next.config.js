@@ -5,17 +5,19 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: [
-      process.env.NEXT_PUBLIC_SUPABASE_DOMAIN || 'wifxignbduaxgtberblz.supabase.co'
+      'wifxignbduaxgtberblz.supabase.co', // dominio de Supabase (si usás imágenes desde allí)
+      'res.cloudinary.com' // dominio de Cloudinary
     ],
   },
   webpack(config) {
     config.resolve.fallback = {
       ...config.resolve.fallback,
       bufferutil: false,
-      'utf-8-validate': false, // ¡el nombre debe estar entre comillas!
+      'utf-8-validate': false,
     };
     return config;
   },
 };
 
 module.exports = nextConfig;
+

@@ -1,8 +1,12 @@
+// hooks/useAdminAccess.ts
+
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@lib/supabaseClient'
+
+const ADMIN_EMAIL = 'mirefugioenpapel@gmail.com'
 
 export function useAdminAccess() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -16,7 +20,10 @@ export function useAdminAccess() {
       console.log('Usuario:', user)
       console.log('Metadata:', user?.user_metadata)
 
-      if (!user || error || user.user_metadata?.role !== 'admin') {
+      const isAdminUser =
+        user?.user_metadata?.role === 'admin' || user?.email === ADMIN_EMAIL
+
+      if (!user || error || !isAdminUser) {
         router.push('/')
         return
       }

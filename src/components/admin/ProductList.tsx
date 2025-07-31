@@ -1,3 +1,5 @@
+// components/admin/ProductList.tsx
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -34,24 +36,36 @@ export default function ProductList() {
     const confirm = window.confirm(`¿Eliminar "${product.name}" y todas sus imágenes?`);
     if (!confirm) return;
 
-    // Eliminar todas las imágenes asociadas al producto
+    // Paso 1: Eliminar imágenes de Cloudinary si existen
     if (product.images?.length > 0) {
-      const imagePaths = product.images.map((url) => {
-        const parts = url.split('/');
-        return parts.slice(parts.indexOf('productos') + 1).join('/');
-      });
+      const cloudName = 'dr5kd2z7y';
 
-      const { error: storageError } = await supabase
-        .storage
-        .from('productos')
-        .remove(imagePaths);
+      // Extraer los public_id de cada URL de Cloudinary
+      const publicIds = product.images
+        .map((url) => {
+          const match = url.match(/\/v\d+\/(.+?)\.(jpg|png|jpeg|webp)/);
+          return match ? match[1] : null;
+        })
+        .filter((id): id is string => id !== null);
 
-      if (storageError) {
-        console.error('Error al eliminar imágenes del storage:', storageError);
+      if (publicIds.length > 0) {
+        try {
+          const res = await fetch('/api/cloudinary/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ publicIds }),
+          });
+
+          if (!res.ok) {
+            console.error('Error eliminando imágenes de Cloudinary');
+          }
+        } catch (err) {
+          console.error('Error llamando a API de Cloudinary:', err);
+        }
       }
     }
 
-    // Eliminar el producto de la tabla
+    // Paso 2: Eliminar el producto de la base de datos
     const { error } = await supabase
       .from('products')
       .delete()

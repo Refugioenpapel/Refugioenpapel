@@ -52,7 +52,6 @@ export const descriptionsByCategory: Record<string, string> = {
     <li>Círculos 6cm</li>
     <li>Tag (8x5cm)</li>
     <li>Bolsita (21x11,5cm)</li>
-    <li>Invitación Digital</li>
   </ul>
 
   <hr />
@@ -71,7 +70,6 @@ export const descriptionsByCategory: Record<string, string> = {
     <li>Cierra Bolsita (14x7cm)</li>
     <li>Caja Cierre Corazón o Cubo (según diseño) (6,5x6,5cm aprox)</li>
     <li>Wrappers Cupcake</li>
-    <li>Invitación Digital</li>
   </ul>
   `,
   'golosinas-personalizadas': `
@@ -101,7 +99,7 @@ export const descriptionsByCategory: Record<string, string> = {
   'invitaciones-digitales': `
   <strong style="color:red;"><br />***¡IMPORTANTE!***</strong><br />
   <b>
-  ***El kit es un archivo digital (no recibirás ningún producto físico).***<br />
+  ***La invitación es un archivo digital (no recibirás ningún producto físico).***<br />
   ***El archivo no es imprimible***<br />
    El envío se realizará por mail. <br />
   Una vez finalizada la compra, recibirás los datos para realizar la transferencia bancaria y luego deberás enviar el comprobante de pago a nuestro correo electrónico: mirefugioenpapel@gmail.com o por WhatsApp: 11-2409-8439.</b>

@@ -1,3 +1,5 @@
+// app/productos/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,7 +18,7 @@ const categoriasDisponibles = [
 
 export default function ProductosPage() {
   const searchParams = useSearchParams();
-  const categoria = searchParams.get("categoria");
+  const categoria = searchParams?.get("categoria") || "";
   const router = useRouter();
   const [productos, setProductos] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);

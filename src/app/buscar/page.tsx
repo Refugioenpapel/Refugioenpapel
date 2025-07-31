@@ -1,3 +1,5 @@
+// app/buscar/page.tsx
+
 'use client';
 
 import { useSearchParams } from "next/navigation";
@@ -7,7 +9,7 @@ import { fetchProducts } from "@lib/supabase/products";
 
 export default function BuscarPage() {
   const searchParams = useSearchParams();
-  const query = searchParams.get("search")?.toLowerCase() || "";
+  const query = searchParams?.get("search")?.toLowerCase() ?? "";
   const [filtered, setFiltered] = useState<any[]>([]);
 
   useEffect(() => {

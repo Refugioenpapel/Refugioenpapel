@@ -38,7 +38,7 @@
       ],
       "@lib/*": [
         "lib/*"
-      ],
+      ]
     },
     "forceConsistentCasingInFileNames": true
   },

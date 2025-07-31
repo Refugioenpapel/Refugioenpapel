@@ -1,3 +1,5 @@
+// components/footer.tsx
+
 'use client';
 
 import { FaInstagram, FaFacebookF, FaWhatsapp } from 'react-icons/fa';

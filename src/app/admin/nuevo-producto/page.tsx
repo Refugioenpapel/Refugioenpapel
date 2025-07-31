@@ -1,3 +1,5 @@
+// app/admin/nuevo-producto/page.tsx
+
 'use client'
 
 import { useAdminAccess } from 'hooks/useAdminAccess'
