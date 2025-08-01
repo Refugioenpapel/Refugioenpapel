@@ -11,9 +11,10 @@ import type { Product } from "types/product";
 const categoriasDisponibles = [
   { label: "Todos", value: "" },
   { label: "Souvenirs", value: "souvenirs" },
-  { label: "Decoración de Fiesta", value: "decoracion-de-fiesta" },
-  { label: "Golosinas Personalizadas", value: "golosinas-personalizadas" },
-  { label: "Invitaciones Digitales", value: "invitaciones-digitales" },
+  { label: "Candy Bar y Deco", value: "candy-deco" },
+  { label: "Cajitas y Bolsitas", value: "cajitas-bolsitas" },
+  { label: "Productos Digitales", value: "productos-digitales" },
+  { label: "Archivos Gratis", value: "archivos-gratis" },
 ];
 
 export default function ProductosPage() {

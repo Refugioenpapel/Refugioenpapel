@@ -26,6 +26,20 @@ export const descriptionsBySlug: Record<string, string> = {
   ▫️ <strong>Imantado:</strong> ideal para pegar en la heladera o superficies metálicas<br /><br />
   Un souvenir útil, distinto y con detalles pensados 100% para vos ❤️
   `,
+    'librito': `
+  ✨ <strong>Librito para colorear con lápices</strong><br />
+  <br />
+  Nuestro librito para colorear es el souvenir ideal para entretener a los más chicos durante y después de la fiesta. <br /><br />
+
+  Viene en tamaño A5, con diseños personalizados según la temática del cumple, y ¡con su set de lápices de colores incluido!<br /><br />
+
+  Cada librito incluye hojas con dibujos pensados para los peques, adaptados a la edad y estilo del evento.<br /><br />
+  Perfecto para regalar a los invitados y que se lleven un recuerdo creativo y divertido.<br /><br />
+
+📏 Tamaño librito: A5 (14,8 x 21 cm)<br />
+🖍️ Incluye 1 set de lápices de colores<br />
+🎨 Personalizado con temática y colores a elección<br />
+  `,
 };
 
 export const descriptionsByCategory: Record<string, string> = {

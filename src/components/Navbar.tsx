@@ -210,14 +210,17 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
                       <Link href="/productos?categoria=souvenirs" onClick={() => setMenuOpen(false)}>
                         Souvenirs
                       </Link>
-                      <Link href="/productos?categoria=decoracion-de-fiesta" onClick={() => setMenuOpen(false)}>
-                        Decoración de Fiesta
+                      <Link href="/productos?categoria=candy-deco" onClick={() => setMenuOpen(false)}>
+                        Candy Bar y Deco
                       </Link>
-                      <Link href="/productos?categoria=golosinas-personalizadas" onClick={() => setMenuOpen(false)}>
-                        Golosinas Personalizadas
+                      <Link href="/productos?categoria=cajitas-bolsitas" onClick={() => setMenuOpen(false)}>
+                        Cajitas y Bolsitas
                       </Link>
-                      <Link href="/productos?categoria=invitaciones-digitales" onClick={() => setMenuOpen(false)}>
-                        Invitaciones Digitales
+                      <Link href="/productos?categoria=productos-digitales" onClick={() => setMenuOpen(false)}>
+                        Productos Digitales
+                      </Link>
+                      <Link href="/productos?categoria=archivos-gratis" onClick={() => setMenuOpen(false)}>
+                        Archivos Gratis
                       </Link>
                     </div>
                   )}
