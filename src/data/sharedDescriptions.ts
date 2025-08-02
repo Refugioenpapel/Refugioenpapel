@@ -14,7 +14,7 @@ export const descriptionsBySlug: Record<string, string> = {
   ▫️ <strong>Dibujo para colorear:</strong> ilustración fija para pintar con lo que más te guste<br />
   Un souvenir útil, distinto y con detalles pensados 100% para vos ❤️
   `,
-    'pizarra-2': `
+  'pizarra-2': `
   ✨ <strong>Pizarra personalizada con temática a elección</strong><br />
   Una opción práctica, divertida y funcional para acompañar juegos, eventos o momentos del día a día.<br /><br />
   Nuestras pizarras están pensadas para que los más peques puedan escribir, dibujar y volver a empezar cuantas veces quieran. Se usan con marcador al agua (¡incluido!) y se borran fácilmente con el borrador que viene incorporado en la tapa.<br /><br />
@@ -26,7 +26,7 @@ export const descriptionsBySlug: Record<string, string> = {
   ▫️ <strong>Imantado:</strong> ideal para pegar en la heladera o superficies metálicas<br /><br />
   Un souvenir útil, distinto y con detalles pensados 100% para vos ❤️
   `,
-    'librito': `
+  'librito': `
   ✨ <strong>Librito para colorear con lápices</strong><br />
   <br />
   Nuestro librito para colorear es el souvenir ideal para entretener a los más chicos durante y después de la fiesta. <br /><br />
@@ -39,6 +39,103 @@ export const descriptionsBySlug: Record<string, string> = {
 📏 Tamaño librito: A5 (14,8 x 21 cm)<br />
 🖍️ Incluye 1 set de lápices de colores<br />
 🎨 Personalizado con temática y colores a elección<br />
+  `,
+  'milkbox': `
+  <strong>Una clásica que nunca falla 💫</strong><br />
+  <br />
+  Nuestra Milk Box es perfecta para completar la deco del candy bar o armar souvenirs con sorpresitas, golosinas o regalitos. Se personaliza 100% con la temática que elijas.<br /><br />
+
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja tipo Milk personalizada con los colores y temática de tu evento<br />
+  ✔ Producto físico, con terminaciones prolijas y resistentes<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  15 x 7 x 6 cm
+  `,
+  'caja-deslizable': `
+  <strong>Una cajita que sorprende al abrirse 💥</strong><br />
+  <br />
+  Su formato deslizable la convierte en una opción diferente y súper canchera para entregar dulces, lápices o mini regalitos. Como todo en Refugio, se personaliza con la temática y colores que elijas.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja deslizable<br />
+  ✔ Personalizada con diseño a elección<br /><br />
+  Producto físico, con buen espacio interno<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  13 x 6 x 6 cm
+  `,
+  'minibolsa': `
+  <strong>Chiquita, práctica y súper linda ✨</strong><br />
+  <br />
+  Esta mini bolsa con solapa es perfecta para entregar regalitos pequeños, golosinas o stickers. Personalizada con tu temática favorita, ¡queda hermosa como parte de la deco!<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Bolsa con solapa personalizada<br /><br />
+  Producto físico, impreso con diseño exclusivo<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+ 9,5 x 14 x 4,5 cm
+  `,
+  'bolsa-mediana': `
+  <strong>Una opción versátil y con gran capacidad.</strong><br />
+  <br />
+  La bolsa mediana es ideal para entregar souvenirs de tamaño medio o para completar la decoración del candy bar. Viene con manijas de cinta o cordón, y se personaliza 100% con tu temática favorita.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Bolsa personalizada con diseño a elección<br />
+  ✔ Incluye manijas de cinta o cordón (según stock)<br /><br />
+  Producto físico, resistente y fácil de transportar<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  15 x 15 x 6 cm
+  `,
+  'maxibolsa': `
+  <strong>La estrella del souvenir ✨</strong><br />
+  <br />
+  Esta maxi bolsa es ideal para entregar regalos más grandes o llenar con varias sorpresitas. Se adapta a cualquier temática y se entrega con manijas de cinta o cordón, ¡lista para usar!<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Bolsa personalizada con diseño a elección<br />
+  ✔ Incluye manijas de cinta o cordón (según stock)<br /><br />
+  Producto físico, resistente y de excelente calidad<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  23 x 14 x 6 cm
+  `,
+  'maxivalija': `
+  <strong>¡Una opción con mucha onda y gran capacidad!</strong><br />
+  <br />
+  Esta valija con visor es ideal para armar souvenirs grandes o kits completos: entra de todo y se ve desde afuera. Perfecta para golosinas, elementos para pintar o pequeños regalitos. Como siempre, la personalizamos con la temática y colores de tu evento.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja tipo valija con visor transparente<br />
+  ✔ Incluye tag decorativo<br /><br />
+  Producto físico, con armado firme y resistente<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  Base: 13 x 19,5 cm
+  `,
+  'portarretratos': `
+  <strong>Un recuerdo que no se guarda en un cajón, ¡se luce con amor!</strong><br />
+  <br />
+  Nuestro portarretrato es un souvenir único y funcional, ideal para sumar una foto especial del cumple o evento. Se adapta a la temática que elijas y podés elegirlo con imán para pegar en la heladera o con soporte para apoyar donde quieras.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Portarretrato con diseño personalizado según la temática y colores de tu evento<br />
+  ✔ Espacio para foto de aprox. 11x9 cm<br /><br />
+  Opción a elección: con imán trasero o soporte.<br /><br />
+  Producto físico, listo para entregar<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  10 x 13 cm
+  `,
+  'valija-deluxe': `
+  <strong>Una cajita con formato de valija que enamora a simple vista 😍</strong><br />
+  <br />
+  Tiene el tamaño justo para armar un souvenir con impacto visual, y se adapta a todo tipo de temáticas. Ideal para usar como mini set de regalo o para completar la decoración del evento.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja tipo valija con manija y cierre<br /><br />
+  Personalizada 100% según la temática del cumple. Producto físico, firme y con excelente terminación.<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  12 x 12 x 6 cm
+  `,
+  'milkshake': `
+  <strong>¡El detalle que eleva la decoración!</strong><br />
+  <br />
+  Este vaso con tapa y sorbete es ideal para completar tu mesa dulce con algo funcional, reutilizable y con diseño a elección. Lo podés usar para bebidas, golosinas o como souvenir original.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Vaso Milk Shake<br />
+  ✔ Tapa + sorbete<br />
+  ✔ Personalización con sticker de la temática elegida<br /><br />
+  Producto físico, listo para usar.<br /><br />
   `,
 };
 

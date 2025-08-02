@@ -8,6 +8,7 @@ export interface Product {
   discount?: number;
   original_price?: number;
   longDescription?: string;
+  file_url:string;
   category: string;
 
   // ✅ Variantes del producto (ej. Refugio Mini / Grande)

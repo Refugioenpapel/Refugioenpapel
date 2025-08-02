@@ -19,7 +19,8 @@ export async function fetchProducts(options?: { category?: string; featuredOnly?
       variants,
       is_physical,
       bulk_discounts,
-      is_featured
+      is_featured,
+      file_url
     `);
 
   if (options?.category) {
@@ -57,7 +58,8 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
       variants,
       is_physical,
       bulk_discounts,
-      is_featured
+      is_featured,
+      file_url
     `)
     .eq("slug", slug)
     .single();
