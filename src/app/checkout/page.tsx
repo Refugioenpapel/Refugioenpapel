@@ -77,6 +77,7 @@ export default function CheckoutPage() {
       resumenProductos,
       resumenEnvio,
       total: (totalConDescuento + (envioPrecio || 0)).toFixed(2),
+      descuento: discount > 0 ? `${(discount * 100).toFixed(0)}%` : '0', // nuevo
     };
 
     try {
@@ -87,8 +88,11 @@ export default function CheckoutPage() {
         'cHz6pQf3uU5jTYI48'
       );
 
+      // 🔥 Guarda el carrito, checkout info y el descuento aplicado
       localStorage.setItem('lastCheckoutInfo', JSON.stringify(templateParams));
       localStorage.setItem('lastCart', JSON.stringify(cartItems));
+      localStorage.setItem('lastDiscount', JSON.stringify(discount)); // ✅ GUARDAMOS EL DESCUENTO
+
       clearCart();
       router.push(`/resumen?pedido=${numeroPedido}&email=${formData.email}`);
     } catch (error) {

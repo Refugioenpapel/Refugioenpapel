@@ -18,16 +18,19 @@ export default function ResumenPage() {
 
   const [products, setProducts] = useState<CartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
+  const [checkoutInfo, setCheckoutInfo] = useState<any>(null);
 
   const aliasTransferencia = 'refugioenpapel';
   const telefonoContacto = '+54 9 11 2409 8439';
 
-  const [checkoutInfo, setCheckoutInfo] = useState<any>(null);
+  const [discount, setDiscount] = useState<number>(0); // nuevo
+  
+  useEffect(() => {
+    const stored = localStorage.getItem('lastCart');
+    const info = localStorage.getItem('lastCheckoutInfo');
+    const discountStored = localStorage.getItem('lastDiscount'); // nuevo
 
-useEffect(() => {
-  const stored = localStorage.getItem('lastCart');
-  const info = localStorage.getItem('lastCheckoutInfo');
-
+    
   if (stored) {
     const parsed: CartItem[] = JSON.parse(stored);
     setProducts(parsed);
@@ -37,11 +40,24 @@ useEffect(() => {
   }
 
   if (info) {
-    setCheckoutInfo(JSON.parse(info));
+    const parsedInfo = JSON.parse(info);
+    console.log(parsedInfo); // Verifica qué valores tiene parsedInfo
+    setCheckoutInfo(parsedInfo);
     localStorage.removeItem('lastCheckoutInfo');
+  }
+
+  if (discountStored) {
+    setDiscount(JSON.parse(discountStored)); // parseamos y lo guardamos
+    localStorage.removeItem('lastDiscount');
   }
 }, []);
 
+  const totalFinal = checkoutInfo
+    ? parseFloat(checkoutInfo.total)
+    : subtotal;
+
+  const discountAmount = checkoutInfo?.discountAmount || 0;
+  const couponCode = checkoutInfo?.coupon || null;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -75,8 +91,20 @@ useEffect(() => {
               ))}
             </ul>
           )}
-          <p className="mt-4 font-bold text-right">
-            Total: ${subtotal.toFixed(2)}
+
+          {/* Subtotal */}
+          <p className="mt-4 text-right font-medium">Subtotal: ${subtotal.toFixed(2)}</p>
+
+          {/* Descuento si hay cupón */}
+          {discountAmount > 0 && couponCode && (
+            <p className="text-right text-green-600 font-medium">
+              Cupón "{couponCode}" aplicado: -${discountAmount.toFixed(2)}
+            </p>
+          )}
+
+          {/* Total final */}
+          <p className="mt-2 font-bold text-right">
+            Total: ${totalFinal.toFixed(2)}
           </p>
         </div>
 
