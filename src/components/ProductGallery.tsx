@@ -4,7 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Product } from 'types/product';
-import { getCategoryBadge } from '@lib/productBadges';
+import { getProductBadge } from '@lib/productBadges';
 
 interface ProductGalleryProps {
   products: Product[];
@@ -40,7 +40,7 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
         const discount = product.discount ?? 0;
         const hasDiscount = discount > 0;
         const discountedPrice = (price * (1 - discount / 100)).toFixed(2);
-        const badge = getCategoryBadge(product.category);
+        const badge = getProductBadge(product);
 
         return (
           <div

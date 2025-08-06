@@ -97,9 +97,9 @@ export const descriptionsBySlug: Record<string, string> = {
   'maxivalija': `
   <strong>¡Una opción con mucha onda y gran capacidad!</strong><br />
   <br />
-  Esta valija con visor es ideal para armar souvenirs grandes o kits completos: entra de todo y se ve desde afuera. Perfecta para golosinas, elementos para pintar o pequeños regalitos. Como siempre, la personalizamos con la temática y colores de tu evento.<br /><br />
+  Este maletín con visor es ideal para armar souvenirs grandes o kits completos: entra de todo y se ve desde afuera. Perfecta para golosinas, elementos para pintar o pequeños regalitos. Como siempre, la personalizamos con la temática y colores de tu evento.<br /><br />
  <strong>📦  ¿Qué incluye?</strong><br /><br />
-  ✔ Caja tipo valija con visor transparente<br />
+  ✔ Caja tipo maletín con visor transparente<br />
   ✔ Incluye tag decorativo<br /><br />
   Producto físico, con armado firme y resistente<br /><br />
   📐 Medidas aproximadas:<br /><br />

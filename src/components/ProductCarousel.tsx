@@ -7,7 +7,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import type { Product } from "../types/product";
-import { getCategoryBadge } from "@lib/productBadges";
+import { getProductBadge } from "@lib/productBadges";
 
 interface ProductCarouselProps {
   products: Product[];
@@ -50,7 +50,7 @@ export default function ProductCarousel({ products }: ProductCarouselProps) {
 
           const discountedPrice = (basePrice * (1 - discount / 100)).toFixed(2);
 
-          const badge = getCategoryBadge(product.category);
+          const badge = getProductBadge(product);
 
           return (
             <SwiperSlide key={product.id}>

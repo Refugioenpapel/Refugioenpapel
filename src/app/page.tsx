@@ -67,7 +67,7 @@ export default function Home() {
             muted
             loop
             playsInline
-            className="mx-auto w-full h-auto object-contain shadow-lg"
+            className="mx-auto w-full max-h-[300px] sm:max-h-[400px] lg:max-h-[650px] object-contain shadow-lg rounded-xl"
           />
         ) : (
           <Image
@@ -75,7 +75,7 @@ export default function Home() {
             alt={`Slide ${index + 1}`}
             width={1500}
             height={400}
-            className="mx-auto shadow-lg object-contain"
+            className="mx-auto w-full max-h-[300px] sm:max-h-[400px] lg:max-h-[650px] object-contain shadow-lg rounded-xl"
           />
         )}
       </div>
