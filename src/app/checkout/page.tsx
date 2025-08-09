@@ -140,46 +140,16 @@ export default function CheckoutPage() {
         </div>
 
         {/* ENVÍO */}
-        {contieneFisicos && (
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Envío del producto:</h3>
-
-            <div className="mb-2">
-              <label className="block text-sm font-medium">¿Cómo querés recibir tu pedido?</label>
-              <select
-                name="metodoEntrega"
-                value={formData.metodoEntrega}
-                onChange={handleChange}
-                className="w-full border p-2 rounded-md"
-              >
-                <option value="sucursal">Envío a sucursal de Correo Argentino</option>
-                <option value="domicilio">Envío a domicilio (Correo Argentino)</option>
-              </select>
+          {contieneFisicos && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Envío del producto:</h3>
+              <p className="text-sm text-gray-700">
+                📦 Te contactaremos para coordinar el envío una vez confirmado tu pedido.
+              </p>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input type="text" name="calle" required value={formData.calle} onChange={handleChange} placeholder="Calle*" className="border p-2 rounded-md" />
-              <input type="text" name="numero" required value={formData.numero} onChange={handleChange} placeholder="Número*" className="border p-2 rounded-md" />
-              <input type="text" name="piso" value={formData.piso} onChange={handleChange} placeholder="Piso (opcional)" className="border p-2 rounded-md" />
-              <input type="text" name="departamento" value={formData.departamento} onChange={handleChange} placeholder="Departamento (opcional)" className="border p-2 rounded-md" />
-              <input type="text" name="barrio" value={formData.barrio} onChange={handleChange} placeholder="Barrio (opcional)" className="border p-2 rounded-md" />
-              <input type="text" name="cp" required value={formData.cp} onChange={handleChange} placeholder="Código Postal*" className="border p-2 rounded-md" />
-              <input type="text" name="provincia" required value={formData.provincia} onChange={handleChange} placeholder="Provincia*" className="border p-2 rounded-md" />
-            </div>
-
-            <p className="text-sm text-yellow-700 mt-2">
-              📦 El costo del envío se coordinará luego según el tarifario del Correo Argentino. Te contactaremos por WhatsApp o email para confirmarlo.
-            </p>
-
-            {envioPrecio !== null && (
-              <div className="text-sm text-blue-600 mt-2">
-                Costo estimado de envío: <span className="font-medium">${envioPrecio.toFixed(2)}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        <textarea name="mensaje" rows={3} value={formData.mensaje} onChange={handleChange} placeholder="Mensaje adicional (opcional)" className="w-full border p-2 rounded-md mt-4" />
+        <textarea name="mensaje" rows={3} value={formData.mensaje} onChange={handleChange} placeholder="Ej: Paleta de colores (opcional)" className="w-full border p-2 rounded-md mt-4" />
 
         <p className="text-sm text-gray-600">
           (*) Campos obligatorios. Una vez finalizada la compra podrás visualizar el alias para realizar el pago.
