@@ -16,6 +16,7 @@ export function getProductBadge(product: Product | undefined) {
     'librito': descuentoDesde30,
     'minilibrito': descuentoDesde30,
     'tarjetadulce': descuentoDesde30,
+    'minilibrito-actividades': descuentoDesde30,
     // podés seguir agregando excepciones acá
   };
 

@@ -244,6 +244,46 @@ export const descriptionsBySlug: Record<string, string> = {
   ✔ Detalles: Etiquetas y diseño a elección ✨<br /><br />
   🎁 Ideal para: Candy bar y mesa infantil<br /><br />
   `,
+  'cajitaduo': `
+  Caja personalizada que incluye un orificio para colocar el vaso, un vaso personalizado y un compartimiento extra con capacidad para guardar snacks, golosinas o un juguete pequeño (estas opciones no están incluidas).<br />
+  Práctica y divertida para que los chicos disfruten y tengan todo a mano.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja con orificio para vaso + vaso personalizado + compartimiento extra 🖍 <br />
+  ✔ Detalles: Diseño adaptado a tu temática y colores ✨<br /><br />
+  🎁 Ideal para: Candy bar y mesa infantil<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  Aprox. 17,5 x 12,5 x 8 cm
+  `,
+  'minilibrito-actividades': `
+  <strong>¡Diversión creativa en tamaño mini! 🎨</strong><br />
+  <br />
+  Un librito tamaño A6 con 16 páginas llenas de actividades divertidas y educativas para que los chicos se entretengan y aprendan mientras juegan.<br />
+  Personalizado con la temática y colores de tu evento para que sea un souvenir único.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Mini librito personalizado con 16 páginas de actividades variadas + set de 6 lápices 🖍 <br />
+  ✔ Detalles: Diseño adaptado a tu temática y colores ✨<br /><br />
+  🎁 Ideal para: Souvenir entretenido y educativo<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  Aprox. 10,5 x 14,8 cm (tamaño A6)
+  `,
+  'carryonbox': `
+  Caja alta y angosta con visor transparente que permite mostrar el contenido de manera elegante y práctica. Incluye espacio para personalizar con tu temática y colores, ideal para souvenirs, regalos o detalles especiales que se lucen desde afuera.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja personalizada con visor transparente<br />
+  ✔ Detalles: Diseño adaptado a tu temática y colores, práctico y visual ✨<br /><br />
+  🎁 Ideal para: Souvenir original y presentable<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  Aprox. 21 x 13,5 x 5,5 cm
+  `,
+  'carry-on-arte': `
+  Caja con visor transparente que incluye: un mini librito para colorear, lápices de colores, plastilina y 2 cortantes para moldear. Todo personalizado con tu temática y colores, listo para que los chicos se entretengan y creen.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja con visor + mini librito para colorear + lápices de colores + plastilina + 2 cortantes<br />
+  ✔ Detalles: Personalizado con tu temática y colores, creativo y funcional ✨<br /><br />
+  🎁 Ideal para: Souvenir artístico y divertido<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  Aprox. 21 x 13,5 x 5,5 cm
+  `,
 };
 
 export const descriptionsByCategory: Record<string, string> = {

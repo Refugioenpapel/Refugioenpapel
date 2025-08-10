@@ -8,8 +8,8 @@ import { transformImagesArray } from "@lib/cloudinary/transformSupabaseUrl";
 
 // Carrusel: imágenes y videos
 const logos = [
-  "/carrusel/banner-carrusel.png",
-  "/carrusel/banner-video1.mp4"
+  "/carrusel/banner-carrusel.jpg",
+  "/carrusel/banner-carrusel2.jpg"
 ];
 
 export default function Home() {
