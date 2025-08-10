@@ -4,13 +4,18 @@ import { Product } from 'types/product';
 export function getProductBadge(product: Product | undefined) {
   if (!product) return null;
 
+  // 🎯 Badge reutilizable
+  const descuentoDesde30 = {
+    text: 'Descuento desde 30 u.',
+    className: 'bg-red-200 text-gray-600 text-[10px] font-medium px-2 py-[2px] rounded shadow-sm',
+  };
+
   // ✅ Excepciones por slug
   const customBadgesBySlug: Record<string, { text: string; className: string } | null> = {
     'kit-imprimible-nene': null, // ❌ No mostrar badge aunque sea 'souvenirs'
-    'librito': {
-      text: 'Descuento desde 30 u.',
-      className: 'bg-red-200 text-gray-600 text-[10px] font-medium px-2 py-[2px] rounded shadow-sm',
-    },
+    'librito': descuentoDesde30,
+    'minilibrito': descuentoDesde30,
+    'tarjetadulce': descuentoDesde30,
     // podés seguir agregando excepciones acá
   };
 

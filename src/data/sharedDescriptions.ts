@@ -137,6 +137,113 @@ export const descriptionsBySlug: Record<string, string> = {
   ✔ Personalización con sticker de la temática elegida<br /><br />
   Producto físico, listo para usar.<br /><br />
   `,
+  'minilibrito': `
+  <strong>¡Diversión creativa en tamaño mini! 🎨</strong><br />
+  <br />
+  Nuestro librito para colorear viene con ilustraciones acordes a la temática que elijas y el nombre del festejado/a.
+  Incluye un set de mini lápices para que los peques puedan empezar a colorear en el momento.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Mini librito + set de 6 lápices<br />
+  ✔ Páginas: 16 ilustraciones personalizadas<br />
+  ✔ Detalles: Portada y dibujos adaptados a tu temática<br /><br />
+  🎁 Ideal para: Souvenir o regalo creativo<br /><br />
+  `,
+  'tarjetadulce': `
+  <strong>Un detalle dulce que todos aman 💌</strong><br />
+  <br />
+  Nuestra Tarjeta Dulce combina el diseño personalizado que elijas con una golosina de chocolate.<br />
+  Ideal para regalar a chicos y grandes como recuerdo del evento.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Golosina de chocolate 🍫<br />
+  ✔ Detalles: Colores, textos y temática a elección ✨<br /><br />
+  🎁 Ideal para: Souvenir o presente especial<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  9,5 x 13 cm
+  `,
+  'cubo': `
+  <strong>Un regalo que entretiene y sorprende 📦</strong><br />
+  <br />
+  El Cubo Didáctico incluye una hoja de actividades en rollito y crayones para que los chicos se diviertan.<br />
+  Además, podés sumar golosinas o un pequeño regalo dentro.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Hoja de actividades + crayones 🖍<br />
+  ✔ Detalles: Personalizado con tu temática y colores ✨<br /><br />
+  🎁 Ideal para: Souvenir creativo y funcional<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  9 x 9 x 9 cm
+  `,
+  'rollobox': `
+  <strong>Un regalo que entretiene y sorprende 📦</strong><br />
+  <br />
+  La RolloBox incluye un rollo de dibujos para colorear y lápices para que los chicos se diviertan una y otra vez.<br />
+  Además, podés sumar golosinas o un pequeño regalo dentro.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Rollo para colorear + lápices 🖍<br />
+  ✔ Detalles: Personalizado con tu temática y colores ✨<br /><br />
+  🎁 Ideal para: Souvenir creativo y reutilizable<br /><br />
+  `,
+  'cajavisor': `
+  <strong>Caja con estilo y funcionalidad 🎁</strong><br />
+  <br />
+  Nuestra Caja con visor permite mostrar el contenido sin abrirla, ideal para souvenirs o kits personalizados.<br />
+  Se adapta a cualquier temática y colores que elijas para tu evento.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja con ventana transparente para exhibir el interior<br /><br />
+  🎁 Ideal para: Souvenirs y sets decorativos<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  14 x 10 x 5 cm
+  `,
+  '3d': `
+  <strong>Decoración que destaca en 3D ✨</strong><br />
+  <br />
+  Letras y números con cuerpo de 15 cm de alto, ideales para decorar cumpleaños, eventos o rincones especiales.<br />
+  Incluye capas para armar y personalizar según la temática y colores que elijas.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Letras/números con cuerpo y capas decorativas<br /><br />
+  🎁 Ideal para: Decoración impactante y personalizada<br /><br />
+  📐 Medidas aproximadas:<br /><br />
+  15 cm de alto
+  `,
+  'golosinas24': `
+  <strong>Dulces personalizados para sorprender 🍬</strong><br />
+  <br />
+  El Combo Golosinas incluye 24 unidades: 6 lenguetazos, 6 chocolatines, 6 alfajores y 6 turrones, todos con diseño personalizado según tu temática.<br />
+  Ideal para regalar o completar la mesa dulce con un toque único.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ 24 golosinas personalizadas (6 de cada tipo)<br />
+  ✔ Detalles: Temática y colores a elección ✨<br /><br />
+  🎁 Ideal para: Souvenirs y candy bar<br /><br />
+  `,
+  'golosinas40': `
+  <strong>Dulces personalizados para compartir 🍭</strong><br />
+  <br />
+  El Combo Golosinas x40 incluye 10 lenguetazos, 10 rollos Mogul, 10 monedas y 10 alfajores, todos personalizados con tu temática y colores.<br />
+  Perfecto para completar la mesa dulce o regalar a los invitados con estilo.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ 40 golosinas personalizadas (10 de cada tipo)<br />
+  ✔ Detalles: Diseño único según tu evento ✨<br /><br />
+  🎁 Ideal para: Souvenirs y candy bar<br /><br />
+  `,
+  'golosinas50': `
+  <strong>Dulces personalizados para grandes fiestas 🍬</strong><br />
+  <br />
+  El Combo Golosinas x50 incluye 10 lenguetazos, 10 yapas, 10 monedas, 10 alfajores y 10 blísteres de chupetines Baby Doll, todos personalizados con tu temática.<br />
+  Ideal para sumar variedad y color a la mesa dulce o para repartir entre los invitados.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ 50 golosinas personalizadas (10 de cada tipo)<br />
+  ✔ Detalles: Diseño personalizado a elección ✨<br /><br />
+  🎁 Ideal para: Souvenirs y candy bar<br /><br />
+  `,
+  'baggios': `
+  <strong>Jugos personalizados para toda la mesa 🧃</strong><br />
+  <br />
+  El Combo Jugo Baggio incluye 10 juguitos con diseño personalizado según la temática de tu evento.<br />
+  Perfectos para completar la mesa dulce o regalar a los más chicos.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ 10 jugos personalizados<br />
+  ✔ Detalles: Etiquetas y diseño a elección ✨<br /><br />
+  🎁 Ideal para: Candy bar y mesa infantil<br /><br />
+  `,
 };
 
 export const descriptionsByCategory: Record<string, string> = {
