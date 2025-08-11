@@ -174,11 +174,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const applyCoupon = (code: string) => {
     const normalized = code.trim().toLowerCase();
 
+    /*
     if (normalized === 'emilia') {
       setDiscount(0.1); // 10%
     } else {
       setDiscount(0); // no válido
     }
+  };
+    */
+
+  // Versión sin cupones (por ahora, quitar llave final para que funcione)
+  setDiscount(0);
   };
 
   return (
