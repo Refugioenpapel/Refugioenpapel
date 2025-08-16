@@ -284,6 +284,26 @@ export const descriptionsBySlug: Record<string, string> = {
   📐 Medidas aproximadas:<br /><br />
   Aprox. 21 x 13,5 x 5,5 cm
   `,
+  'memocard': `
+  El clásico juego de la memoria… ¡pero hecho a tu medida!<br />
+  Ilustraciones personalizadas con la temática que elijas, más nombre y edad del festejado/a. Ideal como souvenir o para sumar a la mesa de juegos.<br /><br />
+  El frente de cada carta está protegido con lámina brillante resistente al agua y efecto tornasol ✨.<br />
+  Incluye su propia cajita para guardarlas siempre listas para jugar.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja de guardado incluida 📦<br />
+  ✔ 16 o 32 cartas (a elección) 🃏<br /><br />
+  Personalizado con temática, nombre y edad ✨<br /><br />
+  `,
+  'memocard16': `
+  El clásico juego de la memoria… ¡pero hecho a tu medida!<br />
+  Ilustraciones personalizadas con la temática que elijas, más nombre y edad del festejado/a. Ideal como souvenir o para sumar a la mesa de juegos.<br /><br />
+  El frente de cada carta está protegido con lámina brillante resistente al agua y efecto tornasol ✨.<br />
+  Incluye su propia cajita para guardarlas siempre listas para jugar.<br /><br />
+ <strong>📦  ¿Qué incluye?</strong><br /><br />
+  ✔ Caja de guardado incluida 📦<br />
+  ✔ 16 o 32 cartas (a elección) 🃏<br /><br />
+  Personalizado con temática, nombre y edad ✨<br /><br />
+  `,
 };
 
 export const descriptionsByCategory: Record<string, string> = {
