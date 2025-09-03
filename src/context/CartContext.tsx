@@ -1,8 +1,7 @@
 // context/CartContext.tsx
-
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import CartDrawer from '@components/CartDrawer';
 
 type BulkDiscount = {
@@ -33,10 +32,16 @@ type CartContextType = {
   updateQuantity: (id: string, amount: number) => void;
   clearCart: () => void;
   applyCoupon: (code: string) => void;
-  discount: number;
+  discount: number; // 0..1
   isCartOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
+};
+
+// --- Catálogo de cupones (porcentuales) ---
+// Clave en minúsculas -> porcentaje 0..1
+const PERCENT_COUPONS: Record<string, number> = {
+  refugio10: 0.10,
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -58,7 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return [];
   });
 
-  const [discount, setDiscount] = useState(() => {
+  const [discount, setDiscount] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('discount');
       return saved ? parseFloat(saved) : 0;
@@ -66,33 +71,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return 0;
   });
 
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('appliedCoupon') || null;
+    }
+    return null;
+  });
+
   const [isCartOpen, setIsCartOpen] = useState(false);
-
-  const openCart = () => {
-    console.log('[CartContext] Abrir carrito');
-    setIsCartOpen(true);
-  };
-
+  const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
 
-  const saveCartToStorage = (items: CartItem[]) => {
-    localStorage.setItem('cart', JSON.stringify(items));
-    console.log('[CartContext] Carrito guardado:', items);
-  };
-
-  const saveDiscountToStorage = (value: number) => {
-    localStorage.setItem('discount', value.toString());
-    console.log('[CartContext] Descuento guardado:', value);
-  };
-
+  // Persistencia
   useEffect(() => {
-    saveCartToStorage(cartItems);
+    localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
   useEffect(() => {
-    saveDiscountToStorage(discount);
+    localStorage.setItem('discount', String(discount));
   }, [discount]);
 
+  useEffect(() => {
+    if (appliedCoupon) localStorage.setItem('appliedCoupon', appliedCoupon);
+    else localStorage.removeItem('appliedCoupon');
+  }, [appliedCoupon]);
+
+  // Precios por escalado
   const calculatePrice = (item: CartItem, quantity: number) => {
     if (item.is_physical && item.bulk_discounts) {
       const match = item.bulk_discounts.find((bd) => {
@@ -105,31 +109,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return item.price;
   };
 
+  // Mutadores de carrito
   const addToCart = (item: CartItem) => {
     setCartItems((prevItems) => {
-      const existing = prevItems.find(i => i.id === item.id);
+      const existing = prevItems.find((i) => i.id === item.id);
       const newQuantity = existing ? existing.quantity + item.quantity : item.quantity;
       const newPrice = calculatePrice(item, newQuantity);
 
       if (existing) {
-        return prevItems.map(i =>
-          i.id === item.id
-            ? { ...i, quantity: newQuantity, price: newPrice }
-            : i
+        return prevItems.map((i) =>
+          i.id === item.id ? { ...i, quantity: newQuantity, price: newPrice } : i
         );
-      } else {
-        return [...prevItems, { ...item, price: newPrice }];
       }
+      return [...prevItems, { ...item, price: newPrice }];
     });
   };
 
   const removeFromCart = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const incrementQuantity = (id: string) => {
-    setCartItems(prev =>
-      prev.map(item => {
+    setCartItems((prev) =>
+      prev.map((item) => {
         if (item.id === id) {
           const newQuantity = item.quantity + 1;
           const newPrice = calculatePrice(item, newQuantity);
@@ -141,8 +143,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const decrementQuantity = (id: string) => {
-    setCartItems(prev =>
-      prev.map(item => {
+    setCartItems((prev) =>
+      prev.map((item) => {
         if (item.id === id && item.quantity > 1) {
           const newQuantity = item.quantity - 1;
           const newPrice = calculatePrice(item, newQuantity);
@@ -155,8 +157,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = (id: string, amount: number) => {
     const valid = Math.max(1, Math.min(100, amount));
-    setCartItems(prev =>
-      prev.map(item => {
+    setCartItems((prev) =>
+      prev.map((item) => {
         if (item.id === id) {
           const newPrice = calculatePrice(item, valid);
           return { ...item, quantity: valid, price: newPrice };
@@ -168,23 +170,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setCartItems([]);
+    // Si querés que el cupón se mantenga aunque vacíes el carrito, comentá las dos líneas siguientes:
     setDiscount(0);
+    setAppliedCoupon(null);
   };
 
+  // Cupón porcentual (compatible con tu CartDrawer)
   const applyCoupon = (code: string) => {
     const normalized = code.trim().toLowerCase();
+    const pct = PERCENT_COUPONS[normalized];
 
-    /*
-    if (normalized === 'emilia') {
-      setDiscount(0.1); // 10%
-    } else {
-      setDiscount(0); // no válido
+    if (!pct || pct <= 0) {
+      console.log('[CartContext] Cupón inválido:', normalized);
+      setDiscount(0);
+      setAppliedCoupon(null);
+      return;
     }
-  };
-    */
 
-  // Versión sin cupones (por ahora, quitar llave final para que funcione)
-  setDiscount(0);
+    setDiscount(pct);
+    setAppliedCoupon(normalized);
+    console.log(`[CartContext] Cupón aplicado: ${normalized} -> ${(pct * 100).toFixed(0)}%`);
   };
 
   return (
@@ -212,8 +217,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart debe usarse dentro de un CartProvider');
-  }
+  if (!context) throw new Error('useCart debe usarse dentro de un CartProvider');
   return context;
 };
