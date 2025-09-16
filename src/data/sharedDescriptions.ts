@@ -304,6 +304,45 @@ export const descriptionsBySlug: Record<string, string> = {
   ✔ 16 o 32 cartas (a elección) 🃏<br /><br />
   Personalizado con temática, nombre y edad ✨<br /><br />
   `,
+    'kit-imprimible': `
+    <strong style="color:red;"><br />***¡IMPORTANTE!***</strong><br />
+  <b>
+  ***El kit es un archivo digital (no recibirás ningún producto físico).***<br />
+   El envío se realizará por mail. <br />
+  Una vez finalizada la compra, recibirás los datos para realizar la transferencia bancaria y luego deberás enviar el comprobante de pago a nuestro correo electrónico: mirefugioenpapel@gmail.com o por WhatsApp: 11-2409-8439.</b>
+  <hr />
+
+  <strong><br />Incluye:</strong><br />
+  <ul style="padding-left: 1.2rem; list-style-type: disc;">
+    <li>Una "Guía de papeles y gramajes" con recomendaciones del papel adecuado y consejos para armar cada producto.</li>
+  </ul>
+
+  <hr />
+  <strong><br />KIT REFUGIO MINI</strong><br /><br />
+  <ul style="padding-left: 1.2rem; list-style-type: disc;">
+    <li>Banderines "Feliz Cumpleaños" (14,3x10cm)</li>
+    <li>Banderines Nombre (14,3x10cm)</li>
+    <li>Banderines Separadores (14,3x10cm)</li>
+    <li>Círculos 6cm</li>
+    <li>Tag (8x5cm)</li>
+    <li>Bolsita (21x11,5cm)</li>
+  </ul>
+
+  <hr />
+  <strong><br />KIT REFUGIO GRANDE</strong><br /><br />
+  <ul style="padding-left: 1.2rem; list-style-type: disc;">
+    <li>Banderines "Feliz Cumpleaños" (14,3x10cm)</li>
+    <li>Banderines Nombre (14,3x10cm)</li>
+    <li>Banderines Separadores (14,3x10cm)</li>
+    <li>Círculos 4cm, 6cm, 8cm</li>
+    <li>Tag (8x5cm)</li>
+    <li>Toppers de Personajes (Entre 6 y 8cm aprox)</li>
+    <li>Pochoclera (9cm de alto)</li>
+    <li>Bolsita (21x11,5cm)</li>
+    <li>Cierra Bolsita (14x7cm)</li>
+    <li>Caja Cubo (6,5x6,5cm aprox)</li>
+  </ul>
+  `,
 };
 
 export const descriptionsByCategory: Record<string, string> = {
