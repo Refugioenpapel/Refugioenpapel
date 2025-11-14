@@ -3,9 +3,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { debounce } from "lodash"; // 📌 Agregamos lodash para debounce
+import { debounce } from "lodash";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Menu,
@@ -29,15 +28,15 @@ export default function Navbar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { cartItems, openCart, closeCart } = useCart();
-const [hasMounted, setHasMounted] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
-useEffect(() => {
-  setHasMounted(true);
-}, []);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
-const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  // ✅ Función para cargar sugerencias, con debounce
+  // ✅ Sugerencias con debounce
   const loadSuggestions = debounce(async (query: string) => {
     if (query.trim().length < 2) {
       setSuggestions([]);
@@ -47,18 +46,15 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     const all = await fetchProducts();
     const matches = all
       .filter((p): p is ProductWithPrice => typeof p.price === "number")
-      .filter((p) =>
-        p.name.toLowerCase().includes(query.toLowerCase())
-      )
+      .filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
       .slice(0, 5);
 
     setSuggestions(matches);
-  }, 300); // 300ms debounce
+  }, 300);
 
-  // ✅ useEffect para escuchar cambios en `searchQuery`
   useEffect(() => {
     loadSuggestions(searchQuery);
-    return () => loadSuggestions.cancel(); // 🧹 Limpia debounce si se desmonta
+    return () => loadSuggestions.cancel();
   }, [searchQuery]);
 
   const handleSearch = (value: string) => {
@@ -68,6 +64,7 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     setSuggestions([]);
   };
 
+  // Cerrar menú al click afuera
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -84,6 +81,7 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
 
+  // ESC cierra menú + carrito
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -94,46 +92,62 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [closeCart]);
 
   return (
     <>
-      <nav className="bg-white text-gray-800 shadow-md sticky top-[40px] z-40">
-        <div className="w-full px-4 py-4 flex justify-between items-center relative text-[#A56ABF]">
-          <button onClick={() => setMenuOpen(!menuOpen)}>
+      {/* Fondo blanco, texto gris oscuro */}
+      <nav className="bg-[#FFABCC] text-[#444444] shadow-md sticky top-[40px] z-40">
+        {/* Contenedor más alto: py-6 */}
+        <div className="w-full px-4 py-6 flex justify-between items-center relative">
+          {/* Botón menú (hamburguesa) */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="text-[#cc4a72] hover:opacity-80 transition"
+          >
             {menuOpen ? <X /> : <Menu />}
           </button>
 
+          {/* Marca central: Refugio en Papel (Allura, color anterior más neutro) */}
           <Link
             href="/"
-            className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-2"
+            className="absolute left-1/2 transform -translate-x-1/2 text-4xl font-allura text-[#FFF8FA]"
           >
-            <Image src="/logo.png" alt="Logo" width={54} height={54} />
+            Refugio en Papel
           </Link>
 
-          <button onClick={openCart} className="relative hover:text-[#A084CA]">
+          {/* Carrito */}
+          <button
+            onClick={openCart}
+            className="relative hover:opacity-80 transition text-[#cc4a72]"
+          >
             <ShoppingCart className="w-6 h-6" />
             {hasMounted && totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 text-xs bg-[#A084CA] text-white rounded-full px-1">
+              <span className="absolute -top-2 -right-2 text-xs bg-[#c7a1d9] text-white rounded-full px-1">
                 {totalItems}
               </span>
             )}
           </button>
         </div>
 
-        {/* Menú hamburguesa */}
+        {/* Menú hamburguesa (drawer) */}
         {menuOpen && (
           <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
             <div
               className="fixed inset-0 bg-black bg-opacity-40"
               onClick={() => setMenuOpen(false)}
             />
+            {/* Panel lateral */}
             <div
               ref={menuRef}
               className="relative w-72 max-w-full bg-white shadow-lg p-6 space-y-6 animate-slide-in"
             >
               <div className="flex justify-end">
-                <button onClick={() => setMenuOpen(false)} aria-label="Cerrar menú">
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  aria-label="Cerrar menú"
+                >
                   <X className="w-6 h-6 text-gray-600 hover:text-gray-800" />
                 </button>
               </div>
@@ -168,11 +182,10 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
                       >
                         <div className="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100">
                           {item.images?.length > 0 ? (
-                            <Image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                               src={item.images[0]}
                               alt={item.name}
-                              width={48}
-                              height={48}
                               className="object-cover w-full h-full"
                             />
                           ) : (
@@ -191,45 +204,64 @@ const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
               </div>
 
               {/* Links del menú */}
-              <nav className="flex flex-col space-y-4 text-base font-medium">
-                <Link href="/" onClick={() => setMenuOpen(false)} className="hover:text-[#A084CA]">
+              <nav className="flex flex-col space-y-4 text-base font-medium text-[#444444]">
+                <Link
+                  href="/"
+                  onClick={() => setMenuOpen(false)}
+                  className="hover:text-[#cc4a72]"
+                >
                   Inicio
                 </Link>
 
                 <div>
                   <button
                     onClick={() => setProductosOpen(!productosOpen)}
-                    className="flex justify-between items-center w-full hover:text-[#A084CA]"
+                    className="flex justify-between items-center w-full hover:text-[#cc4a72]"
                   >
                     Productos
-                    {productosOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {productosOpen ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
                   </button>
 
                   {productosOpen && (
                     <div className="ml-4 mt-2 flex flex-col space-y-2 text-sm text-gray-700">
-                      <Link href="/productos?categoria=souvenirs" onClick={() => setMenuOpen(false)}>
+                      <Link
+                        href="/productos?categoria=souvenirs"
+                        onClick={() => setMenuOpen(false)}
+                      >
                         Souvenirs
                       </Link>
-                      <Link href="/productos?categoria=candy-deco" onClick={() => setMenuOpen(false)}>
+                      <Link
+                        href="/productos?categoria=candy-deco"
+                        onClick={() => setMenuOpen(false)}
+                      >
                         Candy Bar y Deco
                       </Link>
-                      <Link href="/productos?categoria=cajitas-bolsitas" onClick={() => setMenuOpen(false)}>
-                        Cajitas y Bolsitas
-                      </Link>
-                      <Link href="/productos?categoria=productos-digitales" onClick={() => setMenuOpen(false)}>
+                      <Link
+                        href="/productos?categoria=productos-digitales"
+                        onClick={() => setMenuOpen(false)}
+                      >
                         Productos Digitales
-                      </Link>
-                      <Link href="/productos?categoria=archivos-gratis" onClick={() => setMenuOpen(false)}>
-                        Archivos Gratis
                       </Link>
                     </div>
                   )}
                 </div>
 
-                <Link href="/sobre-mi" onClick={() => setMenuOpen(false)} className="hover:text-[#A084CA]">
-                  Sobre mí
+                <Link
+                  href="/como-comprar"
+                  onClick={() => setMenuOpen(false)}
+                  className="hover:text-[#cc4a72]"
+                >
+                  ¿Cómo comprar?
                 </Link>
-                <Link href="/contacto" onClick={() => setMenuOpen(false)} className="hover:text-[#A084CA]">
+                <Link
+                  href="/contacto"
+                  onClick={() => setMenuOpen(false)}
+                  className="hover:text-[#cc4a72]"
+                >
                   Contacto
                 </Link>
               </nav>

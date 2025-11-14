@@ -1,19 +1,45 @@
 // app/checkout/page.tsx
-
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import emailjs from 'emailjs-com';
 import { useCart } from '@context/CartContext';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cartItems, clearCart, discount, openCart } = useCart();
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const totalConDescuento = subtotal * (1 - discount);
+  const {
+    cartItems,
+    clearCart,
+    openCart,
 
-  const contieneFisicos = cartItems.some((item) => item.is_physical);
+    // nuevos totales del contexto
+    cartSubtotal,          // subtotal ya con descuentos por cantidad
+    cartDiscountAmount,    // monto de cupón
+    cartTotal,             // total final (sin envío)
+    discount,              // 0..1
+    appliedCoupon,
+    priceLine,
+  } = useCart();
+
+  const contieneFisicos = useMemo(
+    () => cartItems.some((item) => item.is_physical),
+    [cartItems]
+  );
+
+  const subtotalOriginal = useMemo(
+    () => cartItems.reduce((acc, it) => acc + it.originalPrice * it.quantity, 0),
+    [cartItems]
+  );
+
+  const descuentoAutomatico = useMemo(
+    () =>
+      Math.max(
+        0,
+        cartItems.reduce((acc, it) => acc + (it.originalPrice * it.quantity - priceLine(it)), 0)
+      ),
+    [cartItems, priceLine]
+  );
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -47,12 +73,8 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    const fetchEnvio = async () => {
-      console.warn('Consulta automática de tarifa de envío deshabilitada hasta tener credenciales.');
-      setEnvioPrecio(null); // Forzamos null
-    };
-
-    fetchEnvio();
+    // podés conectar CorreoArgentino acá a futuro
+    setEnvioPrecio(null);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -62,7 +84,12 @@ export default function CheckoutPage() {
     const numeroPedido = Math.floor(1000 + Math.random() * 9000);
 
     const resumenProductos = cartItems
-      .map((item) => `• ${item.name} x${item.quantity} – $${(item.price * item.quantity).toFixed(2)}`)
+      .map(
+        (it) =>
+          `• ${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''} x${it.quantity} – $${(
+            it.price * it.quantity
+          ).toFixed(2)}`
+      )
       .join('\n');
 
     const resumenEnvio = contieneFisicos
@@ -71,13 +98,25 @@ export default function CheckoutPage() {
         : 'Envío a sucursal de Correo Argentino (a coordinar)'
       : 'No aplica (producto digital)';
 
+    const envioFinal = envioPrecio || 0;
+    const totalFinal = cartTotal + envioFinal;
+
+    // Parámetros para emailjs
     const templateParams = {
       ...formData,
       order_id: numeroPedido,
       resumenProductos,
       resumenEnvio,
-      total: (totalConDescuento + (envioPrecio || 0)).toFixed(2),
-      descuento: discount > 0 ? `${(discount * 100).toFixed(0)}%` : '0', // nuevo
+
+      // desglose
+      subtotalOriginal: subtotalOriginal.toFixed(2),
+      descuentoAutomatico: descuentoAutomatico.toFixed(2),
+      subtotalConAuto: (cartSubtotal).toFixed(2),
+      cupon: appliedCoupon || '',
+      cuponPct: discount > 0 ? `${(discount * 100).toFixed(0)}%` : '0%',
+      descuentoCupon: cartDiscountAmount.toFixed(2),
+      envio: envioFinal.toFixed(2),
+      total: totalFinal.toFixed(2),
     };
 
     try {
@@ -88,10 +127,9 @@ export default function CheckoutPage() {
         'cHz6pQf3uU5jTYI48'
       );
 
-      // 🔥 Guarda el carrito, checkout info y el descuento aplicado
+      // Guardar para /resumen
       localStorage.setItem('lastCheckoutInfo', JSON.stringify(templateParams));
       localStorage.setItem('lastCart', JSON.stringify(cartItems));
-      localStorage.setItem('lastDiscount', JSON.stringify(discount)); // ✅ GUARDAMOS EL DESCUENTO
 
       clearCart();
       router.push(`/resumen?pedido=${numeroPedido}&email=${formData.email}`);
@@ -132,22 +170,22 @@ export default function CheckoutPage() {
         {/* PERSONALIZACIÓN */}
         <div className="border-t pt-4 mt-4">
           <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Datos para la personalización del producto:</h3>
-          <input type="text" name="evento" required value={formData.evento} onChange={handleChange} placeholder="Temática deseada (Ejemplo: Baby Shark, Unicornio, Fotos del niño/a, etc.)" className="w-full border p-2 rounded-md mb-2" />
-          <input type="text" name="nombrePersonalizado" value={formData.nombrePersonalizado} onChange={handleChange} placeholder="Nombre del niño/a o persona homenajeada (opcional)" className="w-full border p-2 rounded-md mb-2" />
-          <input type="number" name="edad" value={formData.edad} onChange={handleChange} placeholder="Edad a cumplir (opcional)" className="w-full border p-2 rounded-md mb-2" />
-          <input type="text" name="fechaHora" value={formData.fechaHora} onChange={handleChange} placeholder="Fecha y hora del evento (opcional)" className="w-full border p-2 rounded-md mb-2" />
+          <input type="text" name="evento" required value={formData.evento} onChange={handleChange} placeholder="Temática deseada (Ejemplo: Baby Shark, Unicornio...)" className="w-full border p-2 rounded-md mb-2" />
+          <input type="text" name="nombrePersonalizado" value={formData.nombrePersonalizado} onChange={handleChange} placeholder="Nombre del niño/a (opcional)" className="w-full border p-2 rounded-md mb-2" />
+          <input type="number" name="edad" value={formData.edad} onChange={handleChange} placeholder="Edad (opcional)" className="w-full border p-2 rounded-md mb-2" />
+          <input type="text" name="fechaHora" value={formData.fechaHora} onChange={handleChange} placeholder="Fecha y hora (opcional)" className="w-full border p-2 rounded-md mb-2" />
           <input type="text" name="direccioninvitacion" value={formData.direccioninvitacion} onChange={handleChange} placeholder="Dirección para la invitación (opcional)" className="w-full border p-2 rounded-md mb-2" />
         </div>
 
         {/* ENVÍO */}
-          {contieneFisicos && (
-            <div className="border-t pt-4 mt-4">
-              <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Envío del producto:</h3>
-              <p className="text-sm text-gray-700">
-                📦 Te contactaremos para coordinar el envío una vez confirmado tu pedido.
-              </p>
-            </div>
-          )}
+        {contieneFisicos && (
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Envío del producto:</h3>
+            <p className="text-sm text-gray-700">
+              📦 Te contactaremos para coordinar el envío una vez confirmado tu pedido.
+            </p>
+          </div>
+        )}
 
         <textarea name="mensaje" rows={3} value={formData.mensaje} onChange={handleChange} placeholder="Ej: Paleta de colores (opcional)" className="w-full border p-2 rounded-md mt-4" />
 
@@ -155,17 +193,18 @@ export default function CheckoutPage() {
           (*) Campos obligatorios. Una vez finalizada la compra podrás visualizar el alias para realizar el pago.
         </p>
 
-        <div className="bg-gray-50 p-4 rounded-lg text-right border mt-4">
-          <p className="text-sm text-gray-600">Subtotal: <span className="font-medium">${subtotal.toFixed(2)}</span></p>
+        {/* Resumen visible */}
+        <div className="bg-gray-50 p-4 rounded-lg text-right border mt-4 text-sm">
+          <p>Subtotal original: <span className="font-medium">${subtotalOriginal.toFixed(2)}</span></p>
+          {descuentoAutomatico > 0 && (
+            <p className="text-[#A084CA]">Descuento automático: <span className="font-medium">-${descuentoAutomatico.toFixed(2)}</span></p>
+          )}
+          <p>Subtotal: <span className="font-medium">${cartSubtotal.toFixed(2)}</span></p>
           {discount > 0 && (
-            <p className="text-green-600 text-sm">Descuento aplicado: <span className="font-medium">-{(discount * 100).toFixed(0)}%</span></p>
+            <p className="text-green-600">Cupón ({(discount * 100).toFixed(0)}%): <span className="font-medium">-${cartDiscountAmount.toFixed(2)}</span></p>
           )}
-          {contieneFisicos && (
-            <p className="text-sm text-blue-600">
-              Envío: {envioPrecio !== null ? `$${envioPrecio.toFixed(2)}` : 'a coordinar'}
-            </p>
-          )}
-          <p className="text-lg font-bold mt-1">Total: ${(totalConDescuento + (envioPrecio || 0)).toFixed(2)}</p>
+          <p>Envío: <span className="font-medium">{envioPrecio !== null ? `$${envioPrecio.toFixed(2)}` : 'a coordinar'}</span></p>
+          <p className="text-lg font-bold mt-1">Total: ${(cartTotal + (envioPrecio || 0)).toFixed(2)}</p>
         </div>
 
         <button type="submit" disabled={loading} className="w-full bg-[#A084CA] text-white py-2 rounded-full hover:bg-[#8C6ABF] transition">

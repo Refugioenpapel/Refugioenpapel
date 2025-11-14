@@ -1,7 +1,7 @@
 // context/CartContext.tsx
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import CartDrawer from '@components/CartDrawer';
 
 type BulkDiscount = {
@@ -14,28 +14,53 @@ type CartItem = {
   id: string;
   name: string;
   variantLabel?: string;
-  originalPrice: number;
-  price: number;
+
+  // precios
+  originalPrice: number; // precio base unitario (sin descuentos)
+  price: number;         // precio unitario efectivo (actualizado según qty y reglas bulk)
+
   quantity: number;
   weight?: number;
   image: string;
+
+  // flags/campos de producto
   is_physical?: boolean;
+
+  // LEGACY (compat): tramos por cantidad con precio final unitario
   bulk_discounts?: BulkDiscount[];
+
+  // NUEVO esquema: umbral + %
+  bulk_threshold_qty?: number | null; // ej: 25
+  bulk_discount_pct?: number | null;  // ej: 10 (%)
 };
 
 type CartContextType = {
   cartItems: CartItem[];
+
+  // totales (sin y con cupón)
+  cartSubtotal: number;        // suma de lineas (ya con bulk)
+  cartDiscountAmount: number;  // monto descontado por cupón
+  cartTotal: number;           // subtotal - cupón
+
+  // helpers de línea (por si los querés usar en el Drawer)
+  priceLine: (item: CartItem) => number;
+  unitPrice: (item: CartItem, quantity?: number) => number;
+
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string) => void;
   incrementQuantity: (id: string) => void;
   decrementQuantity: (id: string) => void;
   updateQuantity: (id: string, amount: number) => void;
   clearCart: () => void;
+
   applyCoupon: (code: string) => void;
   discount: number; // 0..1
+
   isCartOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
+
+  appliedCoupon: string | null;
 };
 
 // --- Catálogo de cupones (porcentuales) ---
@@ -53,7 +78,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          console.log('[CartContext] Carrito cargado en useState:', parsed);
           return parsed;
         } catch (e) {
           console.error('[CartContext] Error al parsear carrito:', e);
@@ -96,32 +120,78 @@ export function CartProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem('appliedCoupon');
   }, [appliedCoupon]);
 
-  // Precios por escalado
-  const calculatePrice = (item: CartItem, quantity: number) => {
-    if (item.is_physical && item.bulk_discounts) {
+  /**
+   * Calcula el precio unitario efectivo según:
+   * 1) Legacy bulk_discounts (si existen) -> prioriza ese tramo
+   * 2) Nuevo esquema: si es físico y qty >= bulk_threshold_qty => aplica % sobre originalPrice
+   * 3) Caso base: originalPrice
+   */
+  const unitPrice = (item: CartItem, quantity?: number): number => {
+    const qty = quantity ?? item.quantity;
+    const base = Number(item.originalPrice) || 0;
+
+    // 1) LEGACY por tramos de precio
+    if (item.is_physical && Array.isArray(item.bulk_discounts) && item.bulk_discounts.length > 0) {
       const match = item.bulk_discounts.find((bd) => {
-        const minOk = quantity >= bd.min;
-        const maxOk = bd.max === null || quantity <= bd.max;
+        const minOk = qty >= bd.min;
+        const maxOk = bd.max == null || qty <= bd.max;
         return minOk && maxOk;
       });
-      return match ? match.price : item.originalPrice;
+      if (match) return Number(match.price) || base;
+      return base;
     }
-    return item.price;
+
+    // 2) NUEVO umbral + %
+    if (item.is_physical && item.bulk_threshold_qty && item.bulk_discount_pct) {
+      if (qty >= item.bulk_threshold_qty) {
+        const pct = Math.min(Math.max(item.bulk_discount_pct, 0), 100) / 100; // 0..1
+        const discounted = base * (1 - pct);
+        return Number(discounted.toFixed(2));
+      }
+    }
+
+    // 3) sin descuentos por cantidad
+    return base;
   };
 
-  // Mutadores de carrito
+  // Subtotal de una línea (sin cupón — ya contempla bulk)
+  const priceLine = (item: CartItem): number => {
+    return Number((unitPrice(item, item.quantity) * item.quantity).toFixed(2));
+  };
+
+  // Totales del carrito (memo para performance)
+  const cartSubtotal = useMemo(() => {
+    return Number(
+      cartItems.reduce((sum, it) => sum + priceLine(it), 0).toFixed(2)
+    );
+  }, [cartItems]);
+
+  // Monto descontado por cupón (porcentaje sobre subtotal)
+  const cartDiscountAmount = useMemo(() => {
+    const pct = Math.min(Math.max(discount, 0), 1);
+    return Number((cartSubtotal * pct).toFixed(2));
+  }, [cartSubtotal, discount]);
+
+  const cartTotal = useMemo(() => {
+    return Number((cartSubtotal - cartDiscountAmount).toFixed(2));
+  }, [cartSubtotal, cartDiscountAmount]);
+
+  // Mutadores del carrito
+
   const addToCart = (item: CartItem) => {
-    setCartItems((prevItems) => {
-      const existing = prevItems.find((i) => i.id === item.id);
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
       const newQuantity = existing ? existing.quantity + item.quantity : item.quantity;
-      const newPrice = calculatePrice(item, newQuantity);
+      const effectiveUnit = unitPrice(item, newQuantity);
 
       if (existing) {
-        return prevItems.map((i) =>
-          i.id === item.id ? { ...i, quantity: newQuantity, price: newPrice } : i
+        return prev.map((i) =>
+          i.id === item.id
+            ? { ...i, quantity: newQuantity, price: effectiveUnit }
+            : i
         );
       }
-      return [...prevItems, { ...item, price: newPrice }];
+      return [...prev, { ...item, price: effectiveUnit }];
     });
   };
 
@@ -134,8 +204,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       prev.map((item) => {
         if (item.id === id) {
           const newQuantity = item.quantity + 1;
-          const newPrice = calculatePrice(item, newQuantity);
-          return { ...item, quantity: newQuantity, price: newPrice };
+          const newUnit = unitPrice(item, newQuantity);
+          return { ...item, quantity: newQuantity, price: newUnit };
         }
         return item;
       })
@@ -147,8 +217,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       prev.map((item) => {
         if (item.id === id && item.quantity > 1) {
           const newQuantity = item.quantity - 1;
-          const newPrice = calculatePrice(item, newQuantity);
-          return { ...item, quantity: newQuantity, price: newPrice };
+          const newUnit = unitPrice(item, newQuantity);
+          return { ...item, quantity: newQuantity, price: newUnit };
         }
         return item;
       })
@@ -156,12 +226,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = (id: string, amount: number) => {
-    const valid = Math.max(1, Math.min(100, amount));
+    const valid = Math.max(1, Math.min(1000, amount));
     setCartItems((prev) =>
       prev.map((item) => {
         if (item.id === id) {
-          const newPrice = calculatePrice(item, valid);
-          return { ...item, quantity: valid, price: newPrice };
+          const newUnit = unitPrice(item, valid);
+          return { ...item, quantity: valid, price: newUnit };
         }
         return item;
       })
@@ -175,13 +245,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setAppliedCoupon(null);
   };
 
-  // Cupón porcentual (compatible con tu CartDrawer)
+  // Cupón porcentual (aplicado sobre el subtotal ya con bulk)
   const applyCoupon = (code: string) => {
     const normalized = code.trim().toLowerCase();
     const pct = PERCENT_COUPONS[normalized];
 
     if (!pct || pct <= 0) {
-      console.log('[CartContext] Cupón inválido:', normalized);
       setDiscount(0);
       setAppliedCoupon(null);
       return;
@@ -189,24 +258,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     setDiscount(pct);
     setAppliedCoupon(normalized);
-    console.log(`[CartContext] Cupón aplicado: ${normalized} -> ${(pct * 100).toFixed(0)}%`);
   };
 
   return (
     <CartContext.Provider
       value={{
         cartItems,
+
+        cartSubtotal,
+        cartDiscountAmount,
+        cartTotal,
+
+        priceLine,
+        unitPrice,
+
         addToCart,
         removeFromCart,
         incrementQuantity,
         decrementQuantity,
         updateQuantity,
         clearCart,
+
         applyCoupon,
         discount,
+
         isCartOpen,
         openCart,
         closeCart,
+
+        appliedCoupon,
       }}
     >
       {children}

@@ -1,71 +1,101 @@
 // app/productos/[slug]/ProductDetailClient.tsx
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCart } from '@context/CartContext';
 import ProductImageCarousel from '@components/ProductImageCarousel';
 import type { Product } from 'types/product';
-import { descriptionsByCategory, descriptionsBySlug } from '@data/sharedDescriptions';
+import {
+  GENERIC_PHYSICAL_DESCRIPTION,
+  GENERIC_DIGITAL_DESCRIPTION,
+} from '@data/sharedDescriptions';
+
+type Variant = { label: string; price: number };
+
+// Helper para obtener una variante por defecto siempre válida
+function getDefaultVariant(product: Product): Variant {
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    return product.variants[0];
+  }
+  return {
+    label: 'Único',
+    price: product.price ?? 0,
+  };
+}
 
 export default function ProductDetailClient({ product }: { product: Product }) {
-  const defaultVariant =
-    product.variants && product.variants.length > 0
-      ? product.variants[0]
-      : { label: 'Único', price: product.price ?? 0 };
-
-  const [selectedVariant, setSelectedVariant] = useState(defaultVariant);
+  const [selectedVariant, setSelectedVariant] = useState<Variant>(
+    getDefaultVariant(product)
+  );
   const [quantity, setQuantity] = useState(1);
   const { addToCart, openCart } = useCart();
-  const longDescriptionHTML =
-    descriptionsBySlug[product.slug] || descriptionsByCategory[product.category] || '';
+
+  const longDescriptionHTML = product.is_physical
+    ? GENERIC_PHYSICAL_DESCRIPTION
+    : GENERIC_DIGITAL_DESCRIPTION;
 
   const [showZoom, setShowZoom] = useState(false);
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
 
-  // 🔁 Si cambia el producto (por ID o slug), actualizamos la variante seleccionada
+  // Cuando cambia el producto, reseteamos variante + cantidad
   useEffect(() => {
-    const updatedDefault =
-      product.variants && product.variants.length > 0
-        ? product.variants[0]
-        : { label: 'Único', price: product.price ?? 0 };
-    setSelectedVariant(updatedDefault);
-    setQuantity(1); // Reinicia cantidad también si querés
+    setSelectedVariant(getDefaultVariant(product));
+    setQuantity(1);
   }, [product.id, product.slug]);
 
+  const firstImage = useMemo(
+    () => (product.images?.length ? product.images[0] : '/placeholder.png'),
+    [product.images]
+  );
+
+  const hasBulkNew = Boolean(
+    product.is_physical &&
+      product.bulk_threshold_qty &&
+      product.bulk_discount_pct
+  );
+
+  const bulkHint = useMemo(() => {
+    if (!hasBulkNew) return '';
+    return `Llevando ${product.bulk_threshold_qty} unidades o más ${product.bulk_discount_pct}%OFF.`;
+  }, [hasBulkNew, product.bulk_threshold_qty, product.bulk_discount_pct]);
+
   const handleAddToCart = () => {
-  addToCart({
-    id: `${product.id}-${selectedVariant.label}`,
-    name: product.name,
-    variantLabel: selectedVariant.label,
-    originalPrice: selectedVariant.price, // ✅ Precio original por unidad
-    price: selectedVariant.price,         // ✅ No aplicar descuento acá
-    quantity,
-    image: product.images[0],
-    is_physical: product.is_physical,
-    bulk_discounts: product.bulk_discounts, // ✅ Se pasa esto para que el carrito calcule
-  });
-  openCart();
-};
+    const unitPrice = Number(selectedVariant.price || 0);
+
+    addToCart({
+      id: `${product.id}-${selectedVariant.label}`,
+      name: product.name,
+      variantLabel: selectedVariant.label,
+      originalPrice: unitPrice,
+      price: unitPrice,
+      quantity,
+      image: firstImage,
+      is_physical: product.is_physical,
+      bulk_threshold_qty: product.bulk_threshold_qty ?? null,
+      bulk_discount_pct: product.bulk_discount_pct ?? null,
+      bulk_discounts: product.bulk_discounts ?? undefined,
+    });
+
+    openCart();
+  };
 
   const handlePrev = () => {
-    if (zoomIndex !== null) {
-      setZoomIndex((prev) =>
-        prev === 0 ? product.images.length - 1 : (prev as number) - 1
-      );
-    }
+    setZoomIndex((prev) => {
+      if (prev === null || !product.images?.length) return prev;
+      return prev === 0 ? product.images.length - 1 : prev - 1;
+    });
   };
 
   const handleNext = () => {
-    if (zoomIndex !== null) {
-      setZoomIndex((prev) =>
-        prev === product.images.length - 1 ? 0 : (prev as number) + 1
-      );
-    }
+    setZoomIndex((prev) => {
+      if (prev === null || !product.images?.length) return prev;
+      return prev === product.images.length - 1 ? 0 : prev + 1;
+    });
   };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* IMÁGENES + INFO */}
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full max-w-sm mx-auto">
           <ProductImageCarousel
@@ -78,26 +108,44 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           />
         </div>
 
+        {/* TEXTO */}
         <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#A084CA] mb-2">{product.name}</h1>
+          {/* TÍTULO ROSADITO 💗 */}
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#cc4a72] mb-2">
+            {product.name}
+          </h1>
+
           <p className="text-gray-700 mb-4">{product.description}</p>
 
-          <p className="text-lg font-bold text-gray-800 mb-4">
-            ${selectedVariant.price.toFixed(2)}
+          {/* PRECIO (según variante seleccionada) */}
+          <p className="text-lg font-bold text-gray-800 mb-2">
+            ${Number(selectedVariant.price || 0).toFixed(2)}
           </p>
 
-          {product.variants && product.variants.length > 0 && (
+          {/* Hint de descuento por cantidad */}
+          {hasBulkNew && (
+            <p className="text-sm text-[#7D5BBE] bg-[#EFE7FF] inline-block px-2 py-1 rounded mb-3">
+              {bulkHint}
+            </p>
+          )}
+
+          {/* SELECT DE VARIANTES */}
+          {Array.isArray(product.variants) && product.variants.length > 0 && (
             <div className="mb-4">
-              <label className="block mb-1 font-semibold text-sm">Selecciona una opción:</label>
+              <label className="block mb-1 font-semibold text-sm">
+                Selecciona una opción:
+              </label>
               <select
                 value={selectedVariant.label}
                 onChange={(e) => {
-                  const variant = product.variants?.find((v) => v.label === e.target.value);
-                  if (variant) setSelectedVariant(variant);
+                  const v = product.variants?.find(
+                    (v) => v.label === e.target.value
+                  );
+                  if (v) setSelectedVariant(v);
                 }}
                 className="w-full border rounded-lg p-2 text-sm"
               >
-                {product.variants.map((variant) => (
+                {product.variants?.map((variant) => (
                   <option key={variant.label} value={variant.label}>
                     {variant.label}
                   </option>
@@ -106,6 +154,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             </div>
           )}
 
+          {/* CANTIDAD */}
           <div className="flex items-center gap-4 mb-4">
             <label className="text-sm font-semibold">Cantidad:</label>
             <div className="flex items-center gap-2">
@@ -127,43 +176,40 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             </div>
           </div>
 
+          {/* BOTÓN AGREGAR */}
           <button
             onClick={handleAddToCart}
             className="px-6 py-2 bg-[#A084CA] text-white rounded-full hover:bg-[#8C6ABF] transition"
           >
             Agregar al carrito
           </button>
-
+ {/* Elimina Tiempo en Souvenirs
           {product.category === 'souvenirs' && (
             <p className="mt-4 text-sm text-gray-600 italic">
-              ⏳ Tiempo estimado de producción: <strong>15 días hábiles.</strong>
+              ⏳ Tiempo estimado de producción:{' '}
+              <strong>15 días hábiles.</strong>
             </p>
           )}
+            */}
         </div>
       </div>
 
-      {longDescriptionHTML && (
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-2 text-[#A084CA]">Descripción del Producto:</h2>
-          <div
-            className="prose prose-sm text-gray-700"
-            dangerouslySetInnerHTML={{ __html: longDescriptionHTML }}
-          />
-        </div>
-      )}
+      {/* DESCRIPCIÓN LARGA GENERAL (RULUKO) */}
+      <div
+        className="prose-ruluko mt-10 text-[#444444]"
+        dangerouslySetInnerHTML={{ __html: longDescriptionHTML }}
+      />
 
-      {showZoom && zoomIndex !== null && (
+      {/* ZOOM IMÁGENES */}
+      {showZoom && zoomIndex !== null && product.images?.length > 0 && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-4"
           onClick={() => setShowZoom(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setShowZoom(false);
-            }
-          }}
-          tabIndex={-1}
         >
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setShowZoom(false)}
               className="absolute top-4 right-4 text-white text-3xl font-bold"
@@ -181,7 +227,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             <img
               src={product.images[zoomIndex]}
               alt="Imagen ampliada"
-              className="max-w-[105vw] max-h-[105vh] rounded shadow-lg"
+              className="max-w-[90vw] max-h-[90vh] rounded shadow-lg"
             />
 
             <button

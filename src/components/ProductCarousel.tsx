@@ -1,129 +1,140 @@
+// components/ProductCarousel.tsx
 'use client';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, A11y } from 'swiper/modules';
+
 import Image from 'next/image';
 import Link from 'next/link';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
-import type { Product } from "../types/product";
-import { getProductBadge } from "@lib/productBadges";
+import { useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { Product } from 'types/product';
+import { getBadgeMeta } from '@lib/productBadges';
+import BadgePill from '@components/ui/BadgePill';
 
-interface ProductCarouselProps {
+type Props = {
+  title?: string;
   products: Product[];
-}
+  ctaHref?: string;
+  ctaLabel?: string;
+};
 
-export default function ProductCarousel({ products }: ProductCarouselProps) {
-  if (!products || products.length === 0) {
-    return <p className="text-center text-gray-500">No hay productos para mostrar.</p>;
-  }
+export default function ProductCarousel({
+  title = '',
+  products,
+  ctaHref = '/productos',
+  ctaLabel = 'Ver más productos',
+}: Props) {
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const scrollByViewport = (dir: 'left' | 'right') => {
+    const el = trackRef.current;
+    if (!el) return;
+    const viewportWidth = el.clientWidth;
+    el.scrollBy({
+      left: dir === 'right' ? viewportWidth : -viewportWidth,
+      behavior: 'smooth',
+    });
+  };
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      <Swiper
-        modules={[Navigation, Pagination, A11y]}
-        spaceBetween={20}
-        slidesPerView={1}
-        navigation
-        pagination={{ clickable: true }}
-        breakpoints={{
-          640: { slidesPerView: 1 },
-          768: { slidesPerView: 2 },
-          1024: { slidesPerView: 3 },
-        }}
-        className="w-full"
+    <section className="relative">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-[#A56ABF]">{title}</h2>
+        <div className="flex items-center gap-2">
+          <button
+            aria-label="Anterior"
+            onClick={() => scrollByViewport('left')}
+            className="rounded-full border p-2 hover:bg-gray-50 transition shadow-sm"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            aria-label="Siguiente"
+            onClick={() => scrollByViewport('right')}
+            className="rounded-full border p-2 hover:bg-gray-50 transition shadow-sm"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Track */}
+      <div
+        ref={trackRef}
+        className="
+          relative flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2
+          [-ms-overflow-style:none] [scrollbar-width:none]
+        "
+        style={{ scrollbarWidth: 'none' } as any}
       >
-        {products.map((product) => {
-          const discount = product.discount ?? 0;
-          const hasDiscount = discount > 0;
+        <style jsx>{`
+          div::-webkit-scrollbar { display: none; }
+        `}</style>
 
-          const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
-          const variants = product.variants ?? [];
-
-          const minVariantPrice = hasVariants
-            ? Math.min(...variants.map((v) => v.price))
-            : null;
-
-          const basePrice = hasVariants
-            ? minVariantPrice ?? 0
-            : product.price ?? 0;
-
-          const discountedPrice = (basePrice * (1 - discount / 100)).toFixed(2);
-
-          const badge = getProductBadge(product);
+        {products.map((p) => {
+          const img = p.images?.[0];
+          const badge = getBadgeMeta(p);
 
           return (
-            <SwiperSlide key={product.id}>
-              <Link href={`/productos/${product.slug}`}>
-                <div className="relative bg-white p-4 sm:p-6 rounded-xl shadow-md h-full min-h-[420px] flex flex-col justify-between hover:shadow-lg transition cursor-pointer">
-
-                  {/* Badge de descuento */}
-                  {hasDiscount && (
-                    <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-full z-10">
-                      {discount}% OFF
-                    </span>
-                  )}
-
-                  {/* Badge de categoría (ej. souvenirs, decoración) */}
-                  {badge && (
-                    <span className={`absolute top-2 left-2 z-10 ${badge.className}`}>
-                      {badge.text}
-                    </span>
-                  )}
-
-                  {/* Imagen */}
-                  {product.images && product.images.length > 0 ? (
+            <article
+              key={p.id}
+              className="
+                snap-start flex-shrink-0
+                basis-[82%] sm:basis-[48%] md:basis-[31%] lg:basis-[23.5%] xl:basis-[18.5%]
+              "
+            >
+              <Link
+                href={`/productos/${p.slug}`}
+                className="group block h-full rounded-2xl border bg-white shadow-sm hover:shadow-md transition"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-2xl">
+                  {badge && <BadgePill label={badge.label} position="top-left" />}
+                  {img ? (
                     <Image
-                      src={product.images[0]}
-                      alt={product.name}
-                      width={300}
-                      height={300}
-                      className="w-full h-48 sm:h-56 object-contain rounded-lg mb-3 sm:mb-4"
+                      src={img}
+                      alt={p.name}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      sizes="(max-width: 640px) 82vw, (max-width: 768px) 48vw, (max-width: 1024px) 31vw, (max-width: 1280px) 23.5vw, 18.5vw"
                     />
                   ) : (
-                    <div className="w-full h-48 sm:h-56 flex items-center justify-center bg-gray-100 rounded-lg mb-3 sm:mb-4">
-                      <span className="text-gray-400">Sin imagen</span>
+                    <div className="absolute inset-0 grid place-content-center text-xs text-gray-400">
+                      Sin imagen
                     </div>
                   )}
+                </div>
 
-                  {/* Título y descripción */}
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-600">{product.name}</h3>
-                  {product.description && (
-                    <p className="text-sm sm:text-base text-gray-600 line-clamp-1">
-                      {product.description} {!product.is_physical && '🖨️'}
-                    </p>
+                <div className="p-3">
+                  <h3 className="line-clamp-2 text-base font-semibold text-gray-800">{p.name}</h3>
+
+                  {p.description && (
+                    <p className="mt-1 line-clamp-2 text-sm text-gray-500">{p.description}</p>
                   )}
 
-                  {/* Precios */}
-                  <div className="mt-2">
-                    {hasDiscount ? (
-                      <>
-                        <span className="text-sm text-gray-400 line-through block">
-                          {!product.is_physical && 'Desde'} ${basePrice.toFixed(2)}
-                        </span>
-                        <span className="text-base font-bold text-pink-600">
-                          {!product.is_physical && '🔥 Desde'} ${discountedPrice}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-base font-bold text-gray-700">
-                        {!product.is_physical && 'Desde'} ${basePrice.toFixed(2)}
+                  {typeof p.price === 'number' && (
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-lg font-bold text-[#A084CA]">
+                        ${p.price.toFixed(2)}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </Link>
-            </SwiperSlide>
+            </article>
           );
         })}
-      </Swiper>
+      </div>
 
-      {/* Botón Ver Más */}
-      <Link href="/productos">
-        <button className="px-6 py-2 bg-[#A084CA] text-white rounded-full hover:bg-[#8C6ABF] transition">
-          Ver más productos
-        </button>
-      </Link>
-    </div>
+      {/* CTA */}
+      {ctaHref && (
+        <div className="mt-6 flex justify-center">
+          <Link
+            href={ctaHref}
+            className="rounded-full bg-[#A084CA] px-5 py-2.5 text-white shadow hover:bg-[#8C6ABF] transition"
+          >
+            {ctaLabel}
+          </Link>
+        </div>
+      )}
+    </section>
   );
 }

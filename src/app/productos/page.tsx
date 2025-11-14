@@ -12,9 +12,7 @@ const categoriasDisponibles = [
   { label: "Todos", value: "" },
   { label: "Souvenirs", value: "souvenirs" },
   { label: "Candy Bar y Deco", value: "candy-deco" },
-  { label: "Cajitas y Bolsitas", value: "cajitas-bolsitas" },
   { label: "Productos Digitales", value: "productos-digitales" },
-  { label: "Archivos Gratis", value: "archivos-gratis" },
 ];
 
 export default function ProductosPage() {

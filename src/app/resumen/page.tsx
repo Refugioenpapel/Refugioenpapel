@@ -9,6 +9,7 @@ type CartItem = {
   price: number;
   quantity: number;
   image: string;
+  variantLabel?: string;
 };
 
 export default function ResumenPage() {
@@ -17,47 +18,58 @@ export default function ResumenPage() {
   const email = searchParams.get('email');
 
   const [products, setProducts] = useState<CartItem[]>([]);
-  const [subtotal, setSubtotal] = useState(0);
   const [checkoutInfo, setCheckoutInfo] = useState<any>(null);
 
   const aliasTransferencia = 'refugioenpapel';
   const telefonoContacto = '+54 9 11 2409 8439';
 
-  const [discount, setDiscount] = useState<number>(0); // nuevo
-  
   useEffect(() => {
-    const stored = localStorage.getItem('lastCart');
     const info = localStorage.getItem('lastCheckoutInfo');
-    const discountStored = localStorage.getItem('lastDiscount'); // nuevo
+    const stored = localStorage.getItem('lastCart');
 
-    
-  if (stored) {
-    const parsed: CartItem[] = JSON.parse(stored);
-    setProducts(parsed);
-    const total = parsed.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    setSubtotal(total);
-    localStorage.removeItem('lastCart');
-  }
+    if (info) {
+      try {
+        const parsedInfo = JSON.parse(info);
+        setCheckoutInfo(parsedInfo);
+      } catch {}
+      localStorage.removeItem('lastCheckoutInfo');
+    }
 
-  if (info) {
-    const parsedInfo = JSON.parse(info);
-    console.log(parsedInfo); // Verifica qué valores tiene parsedInfo
-    setCheckoutInfo(parsedInfo);
-    localStorage.removeItem('lastCheckoutInfo');
-  }
+    if (stored) {
+      try {
+        const parsedCart = JSON.parse(stored) as CartItem[];
+        setProducts(parsedCart);
+      } catch {}
+      localStorage.removeItem('lastCart');
+    }
+  }, []);
 
-  if (discountStored) {
-    setDiscount(JSON.parse(discountStored)); // parseamos y lo guardamos
-    localStorage.removeItem('lastDiscount');
-  }
-}, []);
+  // Fallbacks si no vino info completa
+  const subtotalOriginal =
+    checkoutInfo?.subtotalOriginal
+      ? parseFloat(checkoutInfo.subtotalOriginal)
+      : products.reduce((acc, it) => acc + it.price * it.quantity, 0);
 
-  const totalFinal = checkoutInfo
+  const descuentoAutomatico = checkoutInfo?.descuentoAutomatico
+    ? parseFloat(checkoutInfo.descuentoAutomatico)
+    : 0;
+
+  const subtotalConAuto =
+    checkoutInfo?.subtotalConAuto
+      ? parseFloat(checkoutInfo.subtotalConAuto)
+      : Math.max(0, subtotalOriginal - descuentoAutomatico);
+
+  const descuentoCupon = checkoutInfo?.descuentoCupon
+    ? parseFloat(checkoutInfo.descuentoCupon)
+    : 0;
+
+  const envio = checkoutInfo?.envio
+    ? parseFloat(checkoutInfo.envio)
+    : 0;
+
+  const totalFinal = checkoutInfo?.total
     ? parseFloat(checkoutInfo.total)
-    : subtotal;
-
-  const discountAmount = checkoutInfo?.discountAmount || 0;
-  const couponCode = checkoutInfo?.coupon || null;
+    : Math.max(0, subtotalConAuto - descuentoCupon + envio);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -83,29 +95,35 @@ export default function ResumenPage() {
                     <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
                     <div>
                       <p className="font-medium">{item.name}</p>
+                      {item.variantLabel && (
+                        <p className="text-xs text-gray-500">{item.variantLabel}</p>
+                      )}
                       <p className="text-sm text-gray-500">x {item.quantity}</p>
                     </div>
                   </div>
-                  <p className="text-right font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="text-right font-semibold">
+                    ${(item.price * item.quantity).toFixed(2)}
+                  </p>
                 </li>
               ))}
             </ul>
           )}
 
-          {/* Subtotal */}
-          <p className="mt-4 text-right font-medium">Subtotal: ${subtotal.toFixed(2)}</p>
-
-          {/* Descuento si hay cupón */}
-          {discountAmount > 0 && couponCode && (
-            <p className="text-right text-green-600 font-medium">
-              Cupón "{couponCode}" aplicado: -${discountAmount.toFixed(2)}
-            </p>
-          )}
-
-          {/* Total final */}
-          <p className="mt-2 font-bold text-right">
-            Total: ${totalFinal.toFixed(2)}
-          </p>
+          {/* Desglose */}
+          <div className="mt-4 text-right space-y-1">
+            <p>Subtotal original: <strong>${subtotalOriginal.toFixed(2)}</strong></p>
+            {descuentoAutomatico > 0 && (
+              <p className="text-[#A084CA]">Descuento automático: <strong>-${descuentoAutomatico.toFixed(2)}</strong></p>
+            )}
+            <p>Subtotal: <strong>${subtotalConAuto.toFixed(2)}</strong></p>
+            {descuentoCupon > 0 && (
+              <p className="text-green-600">
+                Cupón {checkoutInfo?.cupon ? `"${checkoutInfo.cupon}"` : ''}: <strong>-${descuentoCupon.toFixed(2)}</strong>
+              </p>
+            )}
+            <p>Envío: <strong>{envio > 0 ? `$${envio.toFixed(2)}` : 'a coordinar'}</strong></p>
+            <p className="text-lg font-bold mt-2">Total: ${totalFinal.toFixed(2)}</p>
+          </div>
         </div>
 
         <p className="text-sm text-gray-600 mt-4">

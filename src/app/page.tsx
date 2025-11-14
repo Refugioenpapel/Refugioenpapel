@@ -1,90 +1,61 @@
+// app/page.tsx  (o app/add/page.tsx si ese es tu Home)
 'use client';
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import ProductCarousel from "@components/ProductCarousel";
-import { fetchProducts } from "@lib/supabase/products";
-import { transformImagesArray } from "@lib/cloudinary/transformSupabaseUrl";
+import { useEffect, useState } from 'react';
+import ProductCarousel from '@components/ProductCarousel';
+import Hero from '@components/Hero';
+import { fetchProducts } from '@lib/supabase/products';
+import { transformImagesArray } from '@lib/cloudinary/transformSupabaseUrl';
 
-// Carrusel: imágenes y videos
-const logos = [
-  "/carrusel/banner-carrusel.jpg",
-  "/carrusel/banner-carrusel2.jpg"
-];
+// Slides del banner principal (podés sumar más)
+const slides = ['/carrusel/banner-carrusel.jpg', '/carrusel/banner-carrusel2.jpg'];
 
 export default function Home() {
-  const [index, setIndex] = useState(0);
-  const [fade, setFade] = useState(true);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false);
-      setTimeout(() => {
-        setIndex((prev) => (prev + 1) % logos.length);
-        setFade(true);
-      }, 300);
-    }, 5000);
+    (async () => {
+      const all = await fetchProducts();
+      const featured = await fetchProducts({ featuredOnly: true });
 
-    const getProducts = async () => {
-      const all = await fetchProducts(); // Todos los productos
-      const featured = await fetchProducts({ featuredOnly: true }); // Solo destacados
-
-      // Reemplazar imágenes por versiones de Cloudinary
-      const transformedAll = all.map((product) => ({
-        ...product,
-        images: transformImagesArray(product.images),
+      const transformedAll = all.map((p) => ({
+        ...p,
+        images: transformImagesArray(p.images),
       }));
-
-      const transformedFeatured = featured.map((product) => ({
-        ...product,
-        images: transformImagesArray(product.images),
+      const transformedFeatured = featured.map((p) => ({
+        ...p,
+        images: transformImagesArray(p.images),
       }));
 
       setAllProducts(transformedAll);
       setFeaturedProducts(transformedFeatured);
       setLoading(false);
-    };
-
-    getProducts();
-    return () => clearInterval(interval);
+    })();
   }, []);
 
   return (
-    <div className="pt-0 text-center py-10">
-      {/* Carrusel principal con fade */}
-      <div
-        className={`mb-12 transition-opacity duration-500 ease-in-out w-full overflow-hidden ${
-          fade ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        {logos[index].endsWith(".mp4") ? (
-          <video
-            src={logos[index]}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="mx-auto w-full max-h-[300px] sm:max-h-[400px] lg:max-h-[650px] object-contain shadow-lg rounded-xl"
-          />
-        ) : (
-          <Image
-            src={logos[index]}
-            alt={`Slide ${index + 1}`}
-            width={1500}
-            height={400}
-            className="mx-auto w-full max-h-[300px] sm:max-h-[400px] lg:max-h-[650px] object-contain shadow-lg rounded-xl"
-          />
-        )}
-      </div>
+    <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      {/* HERO / Banner principal */}
+      <Hero
+        slides={slides}
+        title="✨ Comprá más, pagá menos"
+        subtitle="Aprovechá descuentos automáticos por cantidad en souvenirs."
+        primaryCta={{ label: 'Ver productos', href: '/productos' }}
+        secondaryCta={{ label: '¿Cómo comprar?', href: '/como-comprar' }}
+        intervalMs={5000}
+        // altura del banner (podés ajustar)
+        heightClasses="h-[220px] sm:h-[300px] lg:h-[420px]"
+      />
 
-      {/* Carrusel de productos destacados */}
-      <section className="px-4 sm:px-8 md:px-16 lg:px-32 mt-16">
-        <h2 className="text-xl sm:text-2xl font-bold text-[#D85B9C] mb-6 text-center">✨ Productos destacados</h2>
+      {/* Destacados */}
+      <section className="mt-12">
+        <h2 className="mb-4 text-xl sm:text-4xl  text-[#A56ABF] font-just-another-hand text-center">
+          PRODUCTOS DESTACADOS
+        </h2>
         {loading ? (
-          <p className="text-center text-gray-500">Cargando productos...</p>
+          <p className="text-center text-gray-500">Cargando productos…</p>
         ) : featuredProducts.length > 0 ? (
           <ProductCarousel products={featuredProducts} />
         ) : (
@@ -92,15 +63,17 @@ export default function Home() {
         )}
       </section>
 
-      {/* Carrusel de todos los productos */}
-      <section className="px-4 sm:px-8 md:px-16 lg:px-32 mt-16">
-        <h2 className="text-2xl font-bold text-[#D85B9C] mb-6 text-center">Nuestros productos</h2>
+      {/* Todos los productos */}
+      <section className="mt-16">
+        <h2 className="mb-4 text-xl sm:text-4xl  text-[#A56ABF] font-just-another-hand text-center">
+          TODOS LOS PRODUCTOS
+        </h2>
         {loading ? (
-          <p className="text-center text-gray-500">Cargando productos...</p>
+          <p className="text-center text-gray-500">Cargando productos…</p>
         ) : (
           <ProductCarousel products={allProducts} />
         )}
       </section>
-    </div>
+    </main>
   );
 }

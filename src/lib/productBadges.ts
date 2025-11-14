@@ -1,48 +1,47 @@
 // lib/productBadges.ts
-import { Product } from 'types/product';
+import type { Product } from "types/product";
 
-export function getProductBadge(product: Product | undefined) {
+export type BadgeMeta = { label: string } | null;
+
+function normalizeCategory(s?: string) {
+  // minúsculas, sin tildes, espacios -> guiones
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+}
+
+/** Reglas de badge: primero excepciones por slug, luego por categoría. */
+export function getBadgeMeta(product?: Product): BadgeMeta {
   if (!product) return null;
 
-  // 🎯 Badge reutilizable
-  const descuentoDesde30 = {
-    text: 'Descuento desde 30 u.',
-    className: 'bg-red-200 text-gray-600 text-[10px] font-medium px-2 py-[2px] rounded shadow-sm',
+  const slug = (product.slug || "").toLowerCase();
+  const cat = normalizeCategory(product.category);
+
+  // 1) Excepciones por slug (null = no mostrar)
+  const bySlug: Record<string, BadgeMeta> = {
+    "kit-imprimible-nene": null,
+    "librito": { label: "Descuento desde 30 u." },
+    "candy-deco": { label: "Descuento desde 30 u." }, // <-- OJO: si esto fuera categoría no aplicará aquí
+    "tarjetadulce": { label: "Descuento desde 30 u." },
+    "minilibrito-actividades": { label: "Descuento desde 30 u." },
   };
 
-  // ✅ Excepciones por slug
-  const customBadgesBySlug: Record<string, { text: string; className: string } | null> = {
-    'kit-imprimible-nene': null, // ❌ No mostrar badge aunque sea 'souvenirs'
-    'librito': descuentoDesde30,
-    'minilibrito': descuentoDesde30,
-    'tarjetadulce': descuentoDesde30,
-    'minilibrito-actividades': descuentoDesde30,
-    // podés seguir agregando excepciones acá
+  if (Object.prototype.hasOwnProperty.call(bySlug, slug)) {
+    return bySlug[slug]; // puede devolver badge o null
+  }
+
+  // 2) Fallback por categoría (usar el nombre "slugificado")
+  const byCategory: Record<string, BadgeMeta> = {
+    "souvenirs": { label: "20% OFF comprando desde 20 u." },
+    // "candy-deco": { label: "Candy-Decoración" }, // <-- acá es donde debe estar
+    // "productos-digitales": { label: "Ideal para decorar" },
   };
 
-  const customBadge = customBadgesBySlug[product.slug];
-  if (customBadge !== undefined) {
-    return customBadge; // puede ser un badge o `null` para no mostrar nada
+  if (Object.prototype.hasOwnProperty.call(byCategory, cat)) {
+    return byCategory[cat];
   }
 
-  // ✅ Fallback por categoría (si no hay excepción por slug)
-  switch (product.category) {
-    case 'souvenirs':
-      return {
-        text: 'Descuento desde 10 u.',
-        className: 'bg-red-200 text-gray-600 text-[10px] font-medium px-2 py-[2px] rounded shadow-sm',
-      };
-    case 'decoracion-de-fiesta':
-      return {
-        text: 'Ideal para decorar',
-        className: 'bg-blue-200 text-gray-600 text-[10px] font-medium px-2 py-[2px] rounded shadow-sm',
-      };
-    case 'golosinas-personalizadas':
-      return {
-        text: 'CandyBar ideal',
-        className: 'bg-green-200 text-gray-600 text-[10px] font-medium px-2 py-[2px] rounded shadow-sm',
-      };
-    default:
-      return null;
-  }
+  return null;
 }

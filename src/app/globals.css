@@ -1,14 +1,34 @@
-/* globals.css */
+/* ========================= */
+/*       FUENTES GLOBALES    */
+/* ========================= */
+
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Nunito:wght@300;400;600;700&family=Pacifico&family=Quicksand:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* En tu archivo globals.css o layout.tsx */
+
 @import 'react-responsive-carousel/lib/styles/carousel.min.css';
 
+
+/* ========================= */
+/*       PALETA DE COLOR     */
+/* ========================= */
+
 :root {
+
+  /* Paleta Refugio */
+  --rp-text: #444444;
+  --rp-marquesina-bg: #e6dbd8;
+  --rp-marquesina-bar: #ffabcc;
+  --rp-bg-light: #fff8fa;
+  --rp-button-main: #c7a1d9;
+  --rp-button-secondary: #fff8fa;
+  --rp-hamburger: #cc4a72;
+
+  /* Colores generales */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #444444;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,9 +40,28 @@
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--rp-text);
   @apply font-nunito;
 }
+
+
+/* ========================= */
+/*     MARQUESINA ANIMATION  */
+/* ========================= */
+
+@keyframes marquee {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
+
+/* ========================= */
+/*     EFECTOS ESTÉTICOS     */
+/* ========================= */
 
 .glitter-border {
   position: relative;
@@ -50,22 +89,12 @@ body {
   opacity: 0.4;
   border-radius: inherit;
 }
-@keyframes marquee {
-  0%   { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+
+@keyframes shimmer {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.animate-marquee {
-  animation: marquee 25s linear infinite;
-}
-@keyframes shimmer {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
 @font-face {
   font-family: "Trend Sans One";
   src: url("/fonts/trendsansone.woff") format("woff");
@@ -74,31 +103,14 @@ body {
   font-display: swap;
 }
 
-@keyframes glitter-border {
-  0% {
-    background-position: 0% 50%;
-  }
-  100% {
-    background-position: 100% 50%;
-  }
-}
 
-.glitter-border {
-  border: 4px solid transparent;
-  border-radius: 9999px;
-  background-image: linear-gradient(120deg, #d1d1d1, #ffffff, #d1d1d1);
-  background-size: 200% auto;
-  animation: glitter-border 3s linear infinite;
-  background-clip: padding-box;
-}
+/* ========================= */
+/*     SLIDE + FADE ANIMS    */
+/* ========================= */
 
 @keyframes slide-in {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
 }
 
 .animate-slide-in {
@@ -106,14 +118,30 @@ body {
 }
 
 @keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .animate-fadeIn {
   animation: fadeIn 2s ease-in-out;
+}
+
+/* helpers para las fuentes cargadas con next/font */
+.font-just-another-hand {
+  font-family: var(--font-just-another-hand);
+}
+
+.font-allura {
+  font-family: var(--font-allura);
+}
+
+.font-ruluko {
+  font-family: var(--font-ruluko);
+}
+
+/* Ajuste general para textos largos en Ruluko */
+.prose-ruluko {
+  font-family: var(--font-ruluko);
+  font-size: 1.05rem; /* ~16.8px */
+  line-height: 1.6;
 }

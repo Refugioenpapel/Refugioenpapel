@@ -1,33 +1,47 @@
+// /src/types/product.ts
 export interface Product {
-  id: string;
+  id: string | number;
+
   name: string;
   slug: string;
   description: string;
-  images: string[];
-  price?: number;
-  discount?: number;
-  original_price?: number;
-  longDescription?: string;
-  file_url:string;
   category: string;
 
-  // ✅ Variantes del producto (ej. Refugio Mini / Grande)
+  // precios
+  price?: number;
+  discount?: number | null;
+  original_price?: number;
+
+  longDescription?: string;
+  file_url?: string;
+
+  // imágenes
+  images: string[];                 // legacy: secure_url
+  image_public_ids?: string[];      // NUEVO: public_id (Cloudinary)
+
+  // variantes (tu storefront usa label/price)
   variants?: {
     label: string;
     price: number;
   }[];
 
-  // ✅ Si el producto es físico (Souvenir)
+  // flags
   is_physical?: boolean;
-
-  // ✅ Si el producto es destacado
   is_featured?: boolean;
 
-  // ✅ Descuentos por cantidad (sólo para productos físicos)
+  // LEGACY (se va deprecando, pero lo dejamos para compat)
   bulk_discounts?: {
-    min: number;        // cantidad mínima
-    max: number | null; // cantidad máxima, o null para "sin límite"
-    price: number;      // precio unitario con ese descuento
+    min: number;
+    max: number | null;
+    price: number;
   }[];
-}
 
+  // NUEVO esquema “umbral + %”
+  bulk_threshold_qty?: number | null; // p.ej. 25
+  bulk_discount_pct?: number | null;  // p.ej. 10.00
+
+  // housekeeping
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;        // soft delete opcional
+}

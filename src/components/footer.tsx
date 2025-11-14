@@ -7,7 +7,7 @@ import { MdEmail } from 'react-icons/md';
 
 export default function Footer() {
   return (
-    <footer className="bg-[#FDEFF7] text-gray-800 w-full mt-auto">
+    <footer className="bg-[#FFABCC] text-gray-800 w-full mt-auto">
       <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
         {/* Nombre del emprendimiento */}
         <div className="text-center">
@@ -24,9 +24,6 @@ export default function Footer() {
           <div className="flex gap-4 text-2xl">
             <a href="https://www.instagram.com/refugioenpapel/" target="_blank" rel="noopener noreferrer" className="hover:text-[#8C6ABF]">
               <FaInstagram />
-            </a>
-            <a href="https://www.facebook.com/share/1Qsj3WLvaP/" target="_blank" rel="noopener noreferrer" className="hover:text-[#8C6ABF]">
-              <FaFacebookF />
             </a>
             <a href="https://wa.me/5491124098439" target="_blank" rel="noopener noreferrer" className="hover:text-[#8C6ABF]">
               <FaWhatsapp />
