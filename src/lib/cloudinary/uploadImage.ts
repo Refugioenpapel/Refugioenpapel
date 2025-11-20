@@ -1,32 +1,56 @@
-// lib/cloudinary/uploadImage.ts
+// src/lib/cloudinary/uploadImage.ts
 
-import { v2 as cloudinary } from "cloudinary";
-import streamifier from "streamifier";
+export type UploadedImage = {
+  url: string;
+  public_id: string;
+};
 
-// Configuración de Cloudinary (asegurate de tener estas variables en .env.local)
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
-});
+/**
+ * Sube una imagen al endpoint interno /api/upload-image
+ * y devuelve { url, public_id } de Cloudinary.
+ *
+ * Se encarga de:
+ *  - Mandar el FormData con file + folder
+ *  - Leer la respuesta como texto
+ *  - Intentar parsear JSON
+ *  - Lanzar errores legibles si algo falla
+ */
+export async function uploadImageToCloudinary(
+  file: File,
+  folder: string = "productos"
+): Promise<UploadedImage> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
 
-export function uploadImageToCloudinary(buffer: Buffer, publicId: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: "productos", // Puedes cambiar la carpeta si querés
-        public_id: publicId,
-        overwrite: true,
-        resource_type: "image",
-      },
-      (error, result) => {
-        if (error || !result) {
-          return reject(error || new Error("Falló la subida a Cloudinary"));
-        }
-        resolve(result.secure_url);
-      }
-    );
-
-    streamifier.createReadStream(buffer).pipe(uploadStream);
+  const res = await fetch("/api/upload-image", {
+    method: "POST",
+    body: formData,
   });
+
+  // Leemos como texto para evitar el "Unexpected token 'I'" si viene un "Internal Server Error"
+  const raw = await res.text();
+
+  let data: any = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.error("Respuesta no válida (no es JSON):", raw);
+    throw new Error(`Respuesta no válida del servidor: ${raw}`);
+  }
+
+  if (!res.ok) {
+    console.error("Error al subir imagen (API):", data);
+    throw new Error(data?.error || "Error al subir imagen");
+  }
+
+  if (!data?.url || !data?.public_id) {
+    console.error("Respuesta inesperada del servidor:", data);
+    throw new Error("El servidor no devolvió los datos de la imagen esperados.");
+  }
+
+  return {
+    url: data.url,
+    public_id: data.public_id,
+  } as UploadedImage;
 }

@@ -4,6 +4,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { uploadImageToCloudinary } from '@lib/cloudinary/uploadImage';
+
 
 type Variant = { name: string; price: number };
 
@@ -150,21 +152,18 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
     let imageUrls: string[] = existingProduct?.images || [];
     let publicIds: string[] = existingProduct?.image_public_ids || [];
 
-    for (const file of imageFile) {
-      const formData = new FormData();
-      formData.append('file', file);
-      // opcional: formData.append('folder', 'refugio/products');
+    try {
+      for (const file of imageFile) {
+        // 👇 usamos el helper que habla con /api/upload-image
+        const uploaded = await uploadImageToCloudinary(file, "productos");
 
-      const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error('Error al subir imagen a Cloudinary:', data);
-        alert('Error al subir imagen. Revisá la consola.');
-        return;
+        imageUrls.push(uploaded.url);
+        publicIds.push(uploaded.public_id);
       }
-      if (data?.url) imageUrls.push(data.url);
-      if (data?.public_id) publicIds.push(data.public_id);
+    } catch (err: any) {
+      console.error("Error al subir imagen a Cloudinary:", err);
+      alert(err?.message || "Error al subir imagen. Revisá la consola.");
+      return;
     }
 
     // Payload para BD (descuento general deprecado -> siempre null)
