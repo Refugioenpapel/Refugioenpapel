@@ -41,7 +41,8 @@
 body {
   background: var(--background);
   color: var(--rp-text);
-  @apply font-nunito;
+  font-family: var(--font-ruluko), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 
@@ -55,7 +56,7 @@ body {
 }
 
 .animate-marquee {
-  animation: marquee 25s linear infinite;
+  animation: marquee 12s linear infinite;
 }
 
 

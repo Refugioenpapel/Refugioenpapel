@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          {/* ⭐ Marquesina fija */}
           <div className="fixed top-0 left-0 right-0 w-full z-40">
             {/* Fondo principal de marquesina */}
-            <div className="bg-[#e6dbd8] py-2 overflow-hidden">
+            <div className="bg-[#e6dbd8] py-0.5 overflow-hidden">
               <div className="
                 animate-marquee
                 whitespace-nowrap
@@ -99,7 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navbar />
 
           {/* ⭐ Contenido con espacio para la marquesina + navbar */}
-          <main className="pt-[41px]">{children}</main>
+          <main className="pt-[32px]">{children}</main>
 
           {/* ⭐ Footer */}
           <Footer />

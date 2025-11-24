@@ -96,30 +96,30 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Fondo blanco, texto gris oscuro */}
-      <nav className="bg-[#FFABCC] text-[#444444] shadow-md sticky top-[40px] z-40">
-        {/* Contenedor más alto: py-6 */}
-        <div className="w-full px-4 py-6 flex justify-between items-center relative">
-          {/* Botón menú (hamburguesa) */}
+      {/* Barra rosa principal */}
+      <nav className="bg-[#FFABCC] text-[#444444] shadow-md sticky top-[28px] z-40">
+        {/* Header con título centrado */}
+        <div className="w-full px-4 py-6 flex items-center justify-between relative">
+          {/* Botón menú (hamburguesa) con ancho fijo */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="text-[#cc4a72] hover:opacity-80 transition"
+            className="text-[#cc4a72] hover:opacity-80 transition w-10 flex justify-start"
           >
             {menuOpen ? <X /> : <Menu />}
           </button>
 
-          {/* Marca central: Refugio en Papel (Allura, color anterior más neutro) */}
+          {/* Marca central: Refugio en Papel */}
           <Link
             href="/"
-            className="absolute left-1/2 transform -translate-x-1/2 text-4xl font-allura text-[#FFF8FA]"
+            className="text-3xl font-allura text-[#FFF8FA] text-center absolute left-1/2 -translate-x-1/2"
           >
             Refugio en Papel
           </Link>
 
-          {/* Carrito */}
+          {/* Carrito con ancho fijo */}
           <button
             onClick={openCart}
-            className="relative hover:opacity-80 transition text-[#cc4a72]"
+            className="relative hover:opacity-80 transition text-[#cc4a72] w-10 flex justify-end"
           >
             <ShoppingCart className="w-6 h-6" />
             {hasMounted && totalItems > 0 && (
