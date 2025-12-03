@@ -146,3 +146,149 @@ body {
   font-size: 1.05rem; /* ~16.8px */
   line-height: 1.6;
 }
+/* ========================= */
+/*     NAVIDAD: NIEVE        */
+/* ========================= */
+
+@keyframes xmas-snow-fall {
+  0% {
+    transform: translate3d(0, -10%, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 110vh, 0);
+    opacity: 0;
+  }
+}
+
+.xmas-snowflake {
+  position: fixed;
+  top: -10%;
+  font-size: 16px;
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+  animation-name: xmas-snow-fall;
+  animation-timing-function: linear;
+}
+
+@media (min-width: 768px) {
+  .xmas-snowflake {
+    font-size: 20px;
+  }
+}
+
+/* ========================= */
+/*   NAVIDAD: LUCES LATERAL  */
+/* ========================= */
+
+.xmas-lights-side {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  display: flex;
+  justify-content: flex-start;
+  pointer-events: none;
+}
+
+.xmas-lights-left {
+  left: 0;
+}
+
+.xmas-lights-right {
+  right: 0;
+}
+
+.xmas-lights-bulbs-vertical {
+  margin-top: 72px; /* arranca debajo de la marquesina / navbar visualmente */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.xmas-bulb {
+  width: 10px;
+  height: 16px;
+  border-radius: 999px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+  animation: xmas-bulb-blink 1.8s ease-in-out infinite;
+}
+
+.xmas-bulb-1 {
+  background: #ffabcc; /* rosa Refugio */
+}
+.xmas-bulb-2 {
+  background: #c7a1d9; /* lila Refugio */
+}
+.xmas-bulb-3 {
+  background: #ffe08a; /* amarillo cálido */
+}
+.xmas-bulb-4 {
+  background: #a4f0c1; /* verdoso pastel */
+}
+
+.xmas-bulb-1 {
+  animation-delay: 0s;
+}
+.xmas-bulb-2 {
+  animation-delay: 0.3s;
+}
+.xmas-bulb-3 {
+  animation-delay: 0.6s;
+}
+.xmas-bulb-4 {
+  animation-delay: 0.9s;
+}
+
+@keyframes xmas-bulb-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(2px);
+  }
+}
+
+/* ========================= */
+/*  NAVIDAD: PAPÁ NOEL FLY   */
+/* ========================= */
+
+.xmas-santa {
+  position: fixed;
+  top: 150px;       /* ajustá si querés más arriba/abajo */
+  left: -40%;
+  animation: xmas-santa-fly 8s linear forwards; /* 👈 SIN infinite */
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.6));
+}
+
+/* Tamaño grande (x3 aprox) */
+.xmas-santa-img {
+  width: 600px;     /* cambiá este valor si lo querés más grande o chico */
+  max-width: none;
+  height: auto;
+}
+
+@keyframes xmas-santa-fly {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(180vw);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(180vw);
+    opacity: 0;
+  }
+}

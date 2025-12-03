@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import ProductCarousel from "@components/ProductCarousel";
 import HeroCarouselDynamic from "@components/HeroCarouselDynamic";
+import SeasonalOverlay from "@components/SeasonalOverlay"; // 👈 NUEVO
 import { fetchProducts } from "@lib/supabase/products";
 import { transformImagesArray } from "@lib/cloudinary/transformSupabaseUrl";
 
@@ -34,12 +35,15 @@ export default function Home() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      {/* 🎄 Overlay navideño sobre toda la home */}
+      <SeasonalOverlay />
+
       {/* HERO / Banner principal dinámico */}
       <HeroCarouselDynamic />
 
       {/* Destacados */}
       <section className="mt-12">
-        <h2 className="mb-4 text-xl sm:text-4xl  text-[#A56ABF] font-just-another-hand text-center">
+        <h2 className="mb-4 text-xl sm:text-4xl text-[#A56ABF] font-just-another-hand text-center">
           PRODUCTOS DESTACADOS
         </h2>
         {loading ? (
@@ -55,7 +59,7 @@ export default function Home() {
 
       {/* Todos los productos */}
       <section className="mt-16">
-        <h2 className="mb-4 text-xl sm:text-4xl  text-[#A56ABF] font-just-another-hand text-center">
+        <h2 className="mb-4 text-xl sm:text-4xl text-[#A56ABF] font-just-another-hand text-center">
           TODOS LOS PRODUCTOS
         </h2>
         {loading ? (
