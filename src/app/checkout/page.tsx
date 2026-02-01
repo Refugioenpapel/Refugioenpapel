@@ -6,14 +6,17 @@ import { useRouter } from 'next/navigation';
 import emailjs from 'emailjs-com';
 import { useCart } from '@context/CartContext';
 
+type PaymentMethod = 'mp' | 'transfer';
+
 export default function CheckoutPage() {
   const router = useRouter();
+
   const {
     cartItems,
     clearCart,
     openCart,
 
-    // nuevos totales del contexto
+    // totales del contexto
     cartSubtotal,          // subtotal ya con descuentos por cantidad
     cartDiscountAmount,    // monto de cupón
     cartTotal,             // total final (sin envío)
@@ -41,6 +44,8 @@ export default function CheckoutPage() {
     [cartItems, priceLine]
   );
 
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mp');
+
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -65,6 +70,20 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [envioPrecio, setEnvioPrecio] = useState<number | null>(null);
 
+  // 10% OFF transferencia (aplicado sobre el total del carrito SIN envío)
+  const transferDiscountPct = 0.10;
+  const transferenciaDescuentoMonto = useMemo(() => {
+    if (paymentMethod !== 'transfer') return 0;
+    return Math.max(0, cartTotal * transferDiscountPct);
+  }, [paymentMethod, cartTotal]);
+
+  const envioFinal = envioPrecio || 0;
+
+  const totalFinal = useMemo(() => {
+    const base = cartTotal - transferenciaDescuentoMonto;
+    return Math.max(0, base + envioFinal);
+  }, [cartTotal, transferenciaDescuentoMonto, envioFinal]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -73,17 +92,12 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    // podés conectar CorreoArgentino acá a futuro
+    // a futuro: cotizador Correo Argentino
     setEnvioPrecio(null);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const numeroPedido = Math.floor(1000 + Math.random() * 9000);
-
-    const resumenProductos = cartItems
+  const buildResumenProductos = () =>
+    cartItems
       .map(
         (it) =>
           `• ${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''} x${it.quantity} – $${(
@@ -92,16 +106,32 @@ export default function CheckoutPage() {
       )
       .join('\n');
 
-    const resumenEnvio = contieneFisicos
-      ? formData.metodoEntrega === 'domicilio'
-        ? 'Envío a domicilio por Correo Argentino (a coordinar)'
-        : 'Envío a sucursal de Correo Argentino (a coordinar)'
-      : 'No aplica (producto digital)';
+  const buildResumenEnvio = () => {
+    if (!contieneFisicos) return 'No aplica (producto digital)';
+    return formData.metodoEntrega === 'domicilio'
+      ? 'Envío a domicilio por Correo Argentino (a coordinar)'
+      : 'Envío a sucursal de Correo Argentino (a coordinar)';
+  };
 
-    const envioFinal = envioPrecio || 0;
-    const totalFinal = cartTotal + envioFinal;
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: 'Respuesta no válida (no es JSON)', raw: text };
+    }
+  };
 
-    // Parámetros para emailjs
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const numeroPedido = Math.floor(1000 + Math.random() * 9000);
+
+    const resumenProductos = buildResumenProductos();
+    const resumenEnvio = buildResumenEnvio();
+
+    // Desglose para guardar / resumen
     const templateParams = {
       ...formData,
       order_id: numeroPedido,
@@ -111,30 +141,90 @@ export default function CheckoutPage() {
       // desglose
       subtotalOriginal: subtotalOriginal.toFixed(2),
       descuentoAutomatico: descuentoAutomatico.toFixed(2),
-      subtotalConAuto: (cartSubtotal).toFixed(2),
+      subtotalConAuto: cartSubtotal.toFixed(2),
       cupon: appliedCoupon || '',
       cuponPct: discount > 0 ? `${(discount * 100).toFixed(0)}%` : '0%',
       descuentoCupon: cartDiscountAmount.toFixed(2),
+
+      // transferencia
+      metodoPago: paymentMethod === 'mp' ? 'Mercado Pago' : 'Transferencia',
+      transferenciaPct: paymentMethod === 'transfer' ? `${(transferDiscountPct * 100).toFixed(0)}%` : '0%',
+      descuentoTransferencia: transferenciaDescuentoMonto.toFixed(2),
+
+      // envío y total
       envio: envioFinal.toFixed(2),
       total: totalFinal.toFixed(2),
     };
 
     try {
-      await emailjs.send(
-        'service_wg78xcn',
-        'template_b529mq6',
-        templateParams,
-        'cHz6pQf3uU5jTYI48'
-      );
-
-      // Guardar para /resumen
+      // Guardar para /resumen (así si vuelve de MP, ya está todo listo)
       localStorage.setItem('lastCheckoutInfo', JSON.stringify(templateParams));
       localStorage.setItem('lastCart', JSON.stringify(cartItems));
 
-      clearCart();
-      router.push(`/resumen?pedido=${numeroPedido}&email=${formData.email}`);
+      // ✅ Si eligió TRANSFERENCIA: enviamos mail como venías haciendo y vamos a resumen
+      if (paymentMethod === 'transfer') {
+        await emailjs.send(
+          'service_wg78xcn',
+          'template_b529mq6',
+          templateParams,
+          'cHz6pQf3uU5jTYI48'
+        );
+
+        clearCart();
+        router.push(`/resumen?pedido=${numeroPedido}&email=${formData.email}`);
+        return;
+      }
+
+      // ✅ Si eligió MERCADO PAGO: creamos preferencia y redirigimos a Checkout Pro
+      // Importante: acá NO limpiamos el carrito todavía (lo ideal es limpiarlo en success,
+      // o cuando recibas webhook y confirmes pago; lo ajustamos después).
+      const items = cartItems.map((it) => ({
+        title: `${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''}`,
+        quantity: it.quantity,
+        unit_price: Number(it.price), // precio unitario que ya viene con descuentos por cantidad en tu contexto
+      }));
+
+      // Si hay descuento por transferencia no aplica acá, porque MP es precio "real".
+      // Si querés aplicar cupón automático igual ya está reflejado en it.price según tu lógica.
+
+      const res = await fetch('/api/mercadopago/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: numeroPedido,
+          payer: {
+            name: formData.nombre,
+            surname: formData.apellido,
+            email: formData.email,
+            phone: formData.telefono,
+          },
+          items,
+          shipping: contieneFisicos
+            ? { cost: envioFinal, mode: formData.metodoEntrega }
+            : null,
+          meta: {
+            resumenEnvio,
+            cupon: appliedCoupon || null,
+          },
+          backTo: {
+            pedido: numeroPedido,
+            email: formData.email,
+          },
+        }),
+      });
+
+      const data = await safeJson(res);
+
+      if (!res.ok || !data?.init_point) {
+        console.error('Error creando preferencia MP:', data);
+        alert(`No se pudo iniciar Mercado Pago. ${data?.error || ''}`.trim());
+        return;
+      }
+
+      // Redirige a MP
+      window.location.href = data.init_point;
     } catch (error) {
-      console.error('Error al enviar el email:', error);
+      console.error('Error en checkout:', error);
       alert('Hubo un error al procesar tu compra. Intenta nuevamente.');
     } finally {
       setLoading(false);
@@ -167,7 +257,7 @@ export default function CheckoutPage() {
         <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="Correo electrónico" className="w-full border p-2 rounded-md" />
         <input type="tel" name="telefono" required value={formData.telefono} onChange={handleChange} placeholder="Teléfono" className="w-full border p-2 rounded-md" />
 
-        {/* PERSONALIZACIÓN */}
+        {/* PERSONALIZACIÓN (NO SE TOCA) */}
         <div className="border-t pt-4 mt-4">
           <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Datos para la personalización del producto:</h3>
           <input type="text" name="evento" required value={formData.evento} onChange={handleChange} placeholder="Temática deseada (Ejemplo: Baby Shark, Unicornio...)" className="w-full border p-2 rounded-md mb-2" />
@@ -177,7 +267,7 @@ export default function CheckoutPage() {
           <input type="text" name="direccioninvitacion" value={formData.direccioninvitacion} onChange={handleChange} placeholder="Dirección para la invitación (opcional)" className="w-full border p-2 rounded-md mb-2" />
         </div>
 
-        {/* ENVÍO */}
+        {/* ENVÍO (NO SE TOCA) */}
         {contieneFisicos && (
           <div className="border-t pt-4 mt-4">
             <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Envío del producto:</h3>
@@ -189,26 +279,84 @@ export default function CheckoutPage() {
 
         <textarea name="mensaje" rows={3} value={formData.mensaje} onChange={handleChange} placeholder="Ej: Paleta de colores (opcional)" className="w-full border p-2 rounded-md mt-4" />
 
+        {/* MÉTODO DE PAGO */}
+        <div className="border-t pt-4 mt-4 space-y-3">
+          <h3 className="text-md font-semibold text-[#A56ABF] mb-1">Método de pago:</h3>
+
+          <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="mp"
+              checked={paymentMethod === 'mp'}
+              onChange={() => setPaymentMethod('mp')}
+              className="mt-1"
+            />
+            <div>
+              <p className="font-medium text-gray-800">Mercado Pago</p>
+              <p className="text-sm text-gray-600">Pagás con tarjeta, saldo o cuotas (Checkout Pro).</p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="transfer"
+              checked={paymentMethod === 'transfer'}
+              onChange={() => setPaymentMethod('transfer')}
+              className="mt-1"
+            />
+            <div>
+              <p className="font-medium text-gray-800">Transferencia bancaria (10% OFF)</p>
+              <p className="text-sm text-gray-600">
+                Se aplica <strong>10% de descuento</strong> al total (sin envío). Luego verás el alias en el resumen.
+              </p>
+            </div>
+          </label>
+        </div>
+
         <p className="text-sm text-gray-600">
-          (*) Campos obligatorios. Una vez finalizada la compra podrás visualizar el alias para realizar el pago.
+          (*) Campos obligatorios. Una vez finalizada la compra podrás visualizar el alias para realizar el pago (si elegiste transferencia).
         </p>
 
         {/* Resumen visible */}
-        <div className="bg-gray-50 p-4 rounded-lg text-right border mt-4 text-sm">
+        <div className="bg-gray-50 p-4 rounded-lg text-right border mt-4 text-sm space-y-1">
           <p>Subtotal original: <span className="font-medium">${subtotalOriginal.toFixed(2)}</span></p>
+
           {descuentoAutomatico > 0 && (
-            <p className="text-[#A084CA]">Descuento automático: <span className="font-medium">-${descuentoAutomatico.toFixed(2)}</span></p>
+            <p className="text-[#A084CA]">
+              Descuento automático: <span className="font-medium">-${descuentoAutomatico.toFixed(2)}</span>
+            </p>
           )}
+
           <p>Subtotal: <span className="font-medium">${cartSubtotal.toFixed(2)}</span></p>
+
           {discount > 0 && (
-            <p className="text-green-600">Cupón ({(discount * 100).toFixed(0)}%): <span className="font-medium">-${cartDiscountAmount.toFixed(2)}</span></p>
+            <p className="text-green-600">
+              Cupón ({(discount * 100).toFixed(0)}%): <span className="font-medium">-${cartDiscountAmount.toFixed(2)}</span>
+            </p>
           )}
+
+          {paymentMethod === 'transfer' && (
+            <p className="text-green-700">
+              Transferencia (10% OFF): <span className="font-medium">-${transferenciaDescuentoMonto.toFixed(2)}</span>
+            </p>
+          )}
+
           <p>Envío: <span className="font-medium">{envioPrecio !== null ? `$${envioPrecio.toFixed(2)}` : 'a coordinar'}</span></p>
-          <p className="text-lg font-bold mt-1">Total: ${(cartTotal + (envioPrecio || 0)).toFixed(2)}</p>
+
+          <p className="text-lg font-bold mt-2">
+            Total: ${totalFinal.toFixed(2)}
+          </p>
         </div>
 
-        <button type="submit" disabled={loading} className="w-full bg-[#A084CA] text-white py-2 rounded-full hover:bg-[#8C6ABF] transition">
-          {loading ? 'Procesando...' : 'Finalizar compra'}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-[#A084CA] text-white py-2 rounded-full hover:bg-[#8C6ABF] transition"
+        >
+          {loading ? 'Procesando...' : paymentMethod === 'mp' ? 'Pagar con Mercado Pago' : 'Finalizar compra'}
         </button>
       </form>
     </div>
