@@ -5,26 +5,17 @@ import { Preference } from 'mercadopago';
 function parsePhone(raw?: string) {
   if (!raw) return null;
 
-  // deja solo dígitos
   const digits = raw.replace(/\D/g, '');
-
-  // casos comunes AR: +54 9 11 2409 8439 -> 5491124098439
-  // queremos area_code=11 y number=24098439
-  // Heurística:
-  // - si empieza con 54, lo sacamos
   let d = digits;
+
   if (d.startsWith('54')) d = d.slice(2);
-  // - si sigue con 9 (celular), lo sacamos
   if (d.startsWith('9')) d = d.slice(1);
 
-  // ahora esperamos algo tipo: 11 + 8 dígitos (CABA) o 2-4 + resto
-  // Tomamos 2 dígitos de area por default (11) si alcanza, si no: null
   if (d.length < 10) return null;
 
   const area_code = d.slice(0, 2);
   const number = d.slice(2);
 
-  // MercadoPago espera strings numéricos
   return { area_code, number };
 }
 
@@ -34,8 +25,9 @@ export async function POST(req: Request) {
     const { items, orderId, payer } = body;
 
     const preference = new Preference(mpClient);
-
     const phoneObj = parsePhone(payer?.phone);
+
+    const email = payer?.email ? String(payer.email) : '';
 
     const result = await preference.create({
       body: {
@@ -49,20 +41,25 @@ export async function POST(req: Request) {
         payer: {
           name: payer?.name ? String(payer.name) : undefined,
           surname: payer?.surname ? String(payer.surname) : undefined,
-          email: payer?.email ? String(payer.email) : undefined,
-          // ✅ SOLO lo mandamos si está bien formado
+          email: email || undefined,
           phone: phoneObj ?? undefined,
         },
 
         external_reference: String(orderId),
 
         back_urls: {
-          success: `${process.env.NEXT_PUBLIC_SITE_URL}/resumen?pedido=${orderId}`,
+          success: `${process.env.NEXT_PUBLIC_SITE_URL}/resumen?pedido=${orderId}&email=${encodeURIComponent(email)}`,
           failure: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=failure`,
           pending: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=pending`,
         },
 
         auto_return: 'approved',
+
+        // Opcional para sandbox:
+        // sandbox: true,
+
+        // Lo dejamos para cuando implementes webhook:
+        // notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago/webhook`,
       },
     });
 
@@ -73,7 +70,6 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('MercadoPago error:', error);
 
-    // ✅ Intentamos devolver el detalle real si viene del SDK
     const detail =
       error?.message ||
       error?.cause?.message ||
@@ -82,10 +78,7 @@ export async function POST(req: Request) {
       null;
 
     return NextResponse.json(
-      {
-        error: 'Error creando preferencia de Mercado Pago',
-        detail,
-      },
+      { error: 'Error creando preferencia de Mercado Pago', detail },
       { status: 500 }
     );
   }

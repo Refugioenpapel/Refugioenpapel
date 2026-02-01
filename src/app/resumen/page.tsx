@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import emailjs from 'emailjs-com';
 
 type CartItem = {
   id: string;
@@ -12,40 +13,22 @@ type CartItem = {
   variantLabel?: string;
 };
 
-type CheckoutInfo = {
-  // básicos
-  order_id?: number | string;
-  nombre?: string;
-  apellido?: string;
-  email?: string;
-  telefono?: string;
-
-  // método de pago + descuentos
-  metodoPago?: string; // "Transferencia bancaria (10% OFF)" | "Mercado Pago"
-  descuentoTransferencia?: string; // monto en string "123.45"
-
-  // desglose guardado
-  subtotalOriginal?: string;
-  descuentoAutomatico?: string;
-  subtotalConAuto?: string;
-  descuentoCupon?: string;
-  envio?: string;
-  total?: string;
-
-  // cupón (opcional)
-  cupon?: string;
-};
-
 export default function ResumenPage() {
   const searchParams = useSearchParams();
   const numeroPedido = searchParams.get('pedido');
-  const email = searchParams.get('email');
+  const emailParam = searchParams.get('email');
 
   const [products, setProducts] = useState<CartItem[]>([]);
-  const [checkoutInfo, setCheckoutInfo] = useState<CheckoutInfo | null>(null);
+  const [checkoutInfo, setCheckoutInfo] = useState<any>(null);
 
   const aliasTransferencia = 'refugioenpapel';
   const telefonoContacto = '+54 9 11 2409 8439';
+
+  // Helpers
+  const isMP = useMemo(() => {
+    const metodo = String(checkoutInfo?.metodoPago || '');
+    return metodo.toLowerCase().includes('mercado pago');
+  }, [checkoutInfo]);
 
   useEffect(() => {
     const info = localStorage.getItem('lastCheckoutInfo');
@@ -53,10 +36,9 @@ export default function ResumenPage() {
 
     if (info) {
       try {
-        const parsedInfo = JSON.parse(info) as CheckoutInfo;
+        const parsedInfo = JSON.parse(info);
         setCheckoutInfo(parsedInfo);
       } catch {}
-      localStorage.removeItem('lastCheckoutInfo');
     }
 
     if (stored) {
@@ -64,53 +46,93 @@ export default function ResumenPage() {
         const parsedCart = JSON.parse(stored) as CartItem[];
         setProducts(parsedCart);
       } catch {}
-      localStorage.removeItem('lastCart');
     }
   }, []);
 
-  // ✅ Método de pago
-  const metodoPago = checkoutInfo?.metodoPago || 'Transferencia bancaria (10% OFF)';
-  const esTransferencia = /transferencia/i.test(metodoPago);
-  const esMercadoPago = /mercado\s*pago/i.test(metodoPago);
-
   // Fallbacks si no vino info completa
-  const subtotalOriginal = useMemo(() => {
-    return checkoutInfo?.subtotalOriginal
+  const subtotalOriginal =
+    checkoutInfo?.subtotalOriginal
       ? parseFloat(checkoutInfo.subtotalOriginal)
       : products.reduce((acc, it) => acc + it.price * it.quantity, 0);
-  }, [checkoutInfo?.subtotalOriginal, products]);
 
-  const descuentoAutomatico = useMemo(() => {
-    return checkoutInfo?.descuentoAutomatico ? parseFloat(checkoutInfo.descuentoAutomatico) : 0;
-  }, [checkoutInfo?.descuentoAutomatico]);
+  const descuentoAutomatico = checkoutInfo?.descuentoAutomatico
+    ? parseFloat(checkoutInfo.descuentoAutomatico)
+    : 0;
 
-  const subtotalConAuto = useMemo(() => {
-    return checkoutInfo?.subtotalConAuto
+  const subtotalConAuto =
+    checkoutInfo?.subtotalConAuto
       ? parseFloat(checkoutInfo.subtotalConAuto)
       : Math.max(0, subtotalOriginal - descuentoAutomatico);
-  }, [checkoutInfo?.subtotalConAuto, subtotalOriginal, descuentoAutomatico]);
 
-  const descuentoCupon = useMemo(() => {
-    return checkoutInfo?.descuentoCupon ? parseFloat(checkoutInfo.descuentoCupon) : 0;
-  }, [checkoutInfo?.descuentoCupon]);
+  const descuentoCupon = checkoutInfo?.descuentoCupon
+    ? parseFloat(checkoutInfo.descuentoCupon)
+    : 0;
 
-  // ✅ Descuento transferencia (monto) si aplica
-  const descuentoTransferencia = useMemo(() => {
-    if (!esTransferencia) return 0;
-    return checkoutInfo?.descuentoTransferencia ? parseFloat(checkoutInfo.descuentoTransferencia) : 0;
-  }, [esTransferencia, checkoutInfo?.descuentoTransferencia]);
+  const envio = checkoutInfo?.envio
+    ? parseFloat(checkoutInfo.envio)
+    : 0;
 
-  const envio = useMemo(() => {
-    return checkoutInfo?.envio ? parseFloat(checkoutInfo.envio) : 0;
-  }, [checkoutInfo?.envio]);
+  const totalFinal = checkoutInfo?.total
+    ? parseFloat(checkoutInfo.total)
+    : Math.max(0, subtotalConAuto - descuentoCupon + envio);
 
-  const totalFinal = useMemo(() => {
-    // si vino total desde checkout, lo respetamos
-    if (checkoutInfo?.total) return parseFloat(checkoutInfo.total);
+  // ✅ Enviar email al volver de MP (solo 1 vez por pedido)
+  useEffect(() => {
+    if (!checkoutInfo) return;
+    if (!numeroPedido) return;
 
-    // cálculo fallback
-    return Math.max(0, subtotalConAuto - descuentoCupon - descuentoTransferencia + envio);
-  }, [checkoutInfo?.total, subtotalConAuto, descuentoCupon, descuentoTransferencia, envio]);
+    // Solo para MP (transferencia ya lo manda en /checkout)
+    const metodo = String(checkoutInfo?.metodoPago || '');
+    const isMercadoPago = metodo.toLowerCase().includes('mercado pago');
+    if (!isMercadoPago) return;
+
+    const sentKey = `email_sent_${numeroPedido}`;
+    const alreadySent = localStorage.getItem(sentKey);
+    if (alreadySent === '1') return;
+
+    (async () => {
+      try {
+        // En algunos casos email viene por URL, en otros por checkoutInfo
+        const finalEmail = checkoutInfo?.email || emailParam || '';
+
+        const templateParams = {
+          ...checkoutInfo,
+          email: finalEmail,
+          order_id: numeroPedido,
+        };
+
+        await emailjs.send(
+          'service_wg78xcn',
+          'template_b529mq6',
+          templateParams,
+          'cHz6pQf3uU5jTYI48'
+        );
+
+        localStorage.setItem(sentKey, '1');
+
+        // Si querés limpiar storage recién cuando mandó el mail:
+        localStorage.removeItem('lastCheckoutInfo');
+        localStorage.removeItem('lastCart');
+      } catch (err) {
+        console.error('Error enviando email (MP):', err);
+        // No limpies storage si falló, así podés reintentar
+      }
+    })();
+  }, [checkoutInfo, numeroPedido, emailParam]);
+
+  // Si NO es MP, limpiamos storage como antes (pero solo cuando ya cargó)
+  useEffect(() => {
+    if (!checkoutInfo) return;
+    if (!numeroPedido) return;
+
+    const metodo = String(checkoutInfo?.metodoPago || '');
+    const isMercadoPago = metodo.toLowerCase().includes('mercado pago');
+    if (isMercadoPago) return;
+
+    // Transferencia u otros: limpiar una vez cargado
+    localStorage.removeItem('lastCheckoutInfo');
+    localStorage.removeItem('lastCart');
+  }, [checkoutInfo, numeroPedido]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -119,60 +141,39 @@ export default function ResumenPage() {
       </h1>
 
       <div className="bg-white rounded-xl shadow p-6 space-y-4 text-gray-800">
-        <p>
-          <strong>Número de pedido:</strong> #{numeroPedido}
-        </p>
-        <p>
-          <strong>Correo electrónico:</strong> {email}
-        </p>
+        <p><strong>Número de pedido:</strong> #{numeroPedido}</p>
+        <p><strong>Correo electrónico:</strong> {emailParam || checkoutInfo?.email || ''}</p>
 
-        {/* ✅ Método de pago */}
         <p>
           <strong>Método de pago:</strong>{' '}
-          <span className="text-[#A084CA] font-semibold">{metodoPago}</span>
+          <span className="text-[#A084CA] font-semibold">
+            {checkoutInfo?.metodoPago || '—'}
+          </span>
         </p>
 
-        {/* ✅ Transferencia: mostrar alias + WhatsApp */}
-        {esTransferencia && (
+        {!isMP && (
           <>
-            <p>
-              <strong>Alias para la transferencia:</strong>{' '}
-              <span className="text-[#A084CA] font-semibold">{aliasTransferencia}</span>
-            </p>
-            <p>
-              <strong>Enviar comprobante a:</strong>{' '}
-              <span className="text-[#A084CA] font-semibold">{telefonoContacto}</span>
-            </p>
+            <p><strong>Alias para la transferencia:</strong> <span className="text-[#A084CA] font-semibold">{aliasTransferencia}</span></p>
+            <p><strong>Enviar comprobante a:</strong> <span className="text-[#A084CA] font-semibold">{telefonoContacto}</span></p>
           </>
         )}
 
-        {/* ✅ MercadoPago: no mostrar alias */}
-        {esMercadoPago && (
+        {isMP && (
           <p className="text-sm text-gray-600">
-            En el próximo paso, al integrar Mercado Pago, acá se mostrará el estado del pago (aprobado / pendiente / rechazado)
-            y el comprobante si corresponde.
+            Si pagaste con Mercado Pago, el mail se envía automáticamente al volver del pago ✅
           </p>
         )}
 
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-2">Resumen de productos:</h2>
-
           {products.length === 0 ? (
             <p>No se encontraron productos.</p>
           ) : (
             <ul className="space-y-4">
               {products.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center justify-between border-b pb-2"
-                >
+                <li key={item.id} className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-16 h-16 object-cover rounded"
-                    />
+                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
                     <div>
                       <p className="font-medium">{item.name}</p>
                       {item.variantLabel && (
@@ -191,55 +192,24 @@ export default function ResumenPage() {
 
           {/* Desglose */}
           <div className="mt-4 text-right space-y-1">
-            <p>
-              Subtotal original: <strong>${subtotalOriginal.toFixed(2)}</strong>
-            </p>
-
+            <p>Subtotal original: <strong>${subtotalOriginal.toFixed(2)}</strong></p>
             {descuentoAutomatico > 0 && (
-              <p className="text-[#A084CA]">
-                Descuento automático:{' '}
-                <strong>-${descuentoAutomatico.toFixed(2)}</strong>
-              </p>
+              <p className="text-[#A084CA]">Descuento automático: <strong>-${descuentoAutomatico.toFixed(2)}</strong></p>
             )}
-
-            <p>
-              Subtotal: <strong>${subtotalConAuto.toFixed(2)}</strong>
-            </p>
-
+            <p>Subtotal: <strong>${subtotalConAuto.toFixed(2)}</strong></p>
             {descuentoCupon > 0 && (
               <p className="text-green-600">
-                Cupón {checkoutInfo?.cupon ? `"${checkoutInfo.cupon}"` : ''}:{' '}
-                <strong>-${descuentoCupon.toFixed(2)}</strong>
+                Cupón {checkoutInfo?.cupon ? `"${checkoutInfo.cupon}"` : ''}: <strong>-${descuentoCupon.toFixed(2)}</strong>
               </p>
             )}
-
-            {/* ✅ Transferencia -10% */}
-            {esTransferencia && descuentoTransferencia > 0 && (
-              <p className="text-green-700">
-                Descuento transferencia (10%):{' '}
-                <strong>-${descuentoTransferencia.toFixed(2)}</strong>
-              </p>
-            )}
-
-            <p>
-              Envío:{' '}
-              <strong>{envio > 0 ? `$${envio.toFixed(2)}` : 'a coordinar'}</strong>
-            </p>
-
+            <p>Envío: <strong>{envio > 0 ? `$${envio.toFixed(2)}` : 'a coordinar'}</strong></p>
             <p className="text-lg font-bold mt-2">Total: ${totalFinal.toFixed(2)}</p>
           </div>
         </div>
 
-        {/* Texto final según método */}
-        {esTransferencia ? (
-          <p className="text-sm text-gray-600 mt-4">
-            Tu pedido será procesado una vez recibido el comprobante de pago. Te contactaremos por email para coordinar la entrega ✨
-          </p>
-        ) : (
-          <p className="text-sm text-gray-600 mt-4">
-            Si elegiste Mercado Pago, cuando lo conectemos vas a ver acá el estado del pago automáticamente ✨
-          </p>
-        )}
+        <p className="text-sm text-gray-600 mt-4">
+          Tu pedido será procesado una vez confirmado el pago. Te contactaremos por email para coordinar la entrega ✨
+        </p>
       </div>
     </div>
   );
