@@ -222,7 +222,8 @@ export default function CheckoutPage() {
       }
 
       // Redirige a MP
-      window.location.href = data.init_point;
+      const url = data.sandbox_init_point || data.init_point;
+window.location.href = url;
     } catch (error) {
       console.error('Error en checkout:', error);
       alert('Hubo un error al procesar tu compra. Intenta nuevamente.');
