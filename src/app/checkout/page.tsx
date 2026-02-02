@@ -251,7 +251,7 @@ export default function CheckoutPage() {
       }
 
       // Redirige a MP
-      const url = data.sandbox_init_point || data.init_point;
+      const url = data.init_point;
       window.location.href = url;
     } catch (error) {
       console.error('Error en checkout:', error);
