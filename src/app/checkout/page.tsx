@@ -17,10 +17,10 @@ export default function CheckoutPage() {
     openCart,
 
     // totales del contexto
-    cartSubtotal,          // subtotal ya con descuentos por cantidad
-    cartDiscountAmount,    // monto de cupón
-    cartTotal,             // total final (sin envío)
-    discount,              // 0..1
+    cartSubtotal, // subtotal ya con descuentos por cantidad
+    cartDiscountAmount, // monto de cupón
+    cartTotal, // total final (sin envío)
+    discount, // 0..1
     appliedCoupon,
     priceLine,
   } = useCart();
@@ -46,6 +46,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mp');
 
+  // ✅ Ahora pedimos SIEMPRE dirección completa (para cualquier pedido)
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -57,14 +58,17 @@ export default function CheckoutPage() {
     edad: '',
     fechaHora: '',
     direccioninvitacion: '',
+
+    // 📦 Dirección / entrega (SIEMPRE)
+    metodoEntrega: 'sucursal', // 'sucursal' | 'domicilio'
+    provincia: '',
+    localidad: '',
+    cp: '',
     calle: '',
     numero: '',
     piso: '',
     departamento: '',
     barrio: '',
-    cp: '',
-    provincia: '',
-    metodoEntrega: 'sucursal',
   });
 
   const [loading, setLoading] = useState(false);
@@ -107,10 +111,42 @@ export default function CheckoutPage() {
       .join('\n');
 
   const buildResumenEnvio = () => {
-    if (!contieneFisicos) return 'No aplica (producto digital)';
+    // ✅ Aunque el pedido sea digital, igual pedimos dirección.
+    // Mantengo tu texto para cuando hay físicos; si no hay físicos, lo dejamos claro.
+    if (!contieneFisicos) return 'Pedido digital (sin envío físico) — se registró dirección igualmente';
     return formData.metodoEntrega === 'domicilio'
       ? 'Envío a domicilio por Correo Argentino (a coordinar)'
       : 'Envío a sucursal de Correo Argentino (a coordinar)';
+  };
+
+  // ✅ Bloque “bonito” para pegar en el email con 1 variable
+  const buildDireccionTexto = () => {
+    const linea1 = `${formData.calle} ${formData.numero}`.trim();
+
+    const pisoDto = [
+      formData.piso ? `Piso ${formData.piso}` : null,
+      formData.departamento ? `Dpto ${formData.departamento}` : null,
+    ]
+      .filter(Boolean)
+      .join(' - ');
+
+    const linea2 = [
+      pisoDto || null,
+      formData.barrio ? `Barrio ${formData.barrio}` : null,
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
+    const linea3 = `${formData.localidad}, ${formData.provincia} (CP ${formData.cp})`;
+
+    return [
+      `Método de entrega: ${formData.metodoEntrega === 'domicilio' ? 'Domicilio' : 'Sucursal'}`,
+      `Dirección: ${linea1}`,
+      linea2 ? `Info: ${linea2}` : null,
+      `Localidad/Provincia: ${linea3}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
   };
 
   const safeJson = async (res: Response) => {
@@ -130,6 +166,7 @@ export default function CheckoutPage() {
 
     const resumenProductos = buildResumenProductos();
     const resumenEnvio = buildResumenEnvio();
+    const direccionTexto = buildDireccionTexto();
 
     // Desglose para guardar / resumen
     const templateParams = {
@@ -137,6 +174,9 @@ export default function CheckoutPage() {
       order_id: numeroPedido,
       resumenProductos,
       resumenEnvio,
+
+      // ✅ nuevo: bloque de dirección “listo para mail”
+      direccionTexto,
 
       // desglose
       subtotalOriginal: subtotalOriginal.toFixed(2),
@@ -148,7 +188,8 @@ export default function CheckoutPage() {
 
       // transferencia
       metodoPago: paymentMethod === 'mp' ? 'Mercado Pago' : 'Transferencia',
-      transferenciaPct: paymentMethod === 'transfer' ? `${(transferDiscountPct * 100).toFixed(0)}%` : '0%',
+      transferenciaPct:
+        paymentMethod === 'transfer' ? `${(transferDiscountPct * 100).toFixed(0)}%` : '0%',
       descuentoTransferencia: transferenciaDescuentoMonto.toFixed(2),
 
       // envío y total
@@ -163,12 +204,7 @@ export default function CheckoutPage() {
 
       // ✅ Si eligió TRANSFERENCIA: enviamos mail como venías haciendo y vamos a resumen
       if (paymentMethod === 'transfer') {
-        await emailjs.send(
-          'service_wg78xcn',
-          'template_b529mq6',
-          templateParams,
-          'cHz6pQf3uU5jTYI48'
-        );
+        await emailjs.send('service_wg78xcn', 'template_b529mq6', templateParams, 'cHz6pQf3uU5jTYI48');
 
         clearCart();
         router.push(`/resumen?pedido=${numeroPedido}&email=${formData.email}`);
@@ -176,16 +212,11 @@ export default function CheckoutPage() {
       }
 
       // ✅ Si eligió MERCADO PAGO: creamos preferencia y redirigimos a Checkout Pro
-      // Importante: acá NO limpiamos el carrito todavía (lo ideal es limpiarlo en success,
-      // o cuando recibas webhook y confirmes pago; lo ajustamos después).
       const items = cartItems.map((it) => ({
         title: `${it.name}${it.variantLabel ? ` (${it.variantLabel})` : ''}`,
         quantity: it.quantity,
-        unit_price: Number(it.price), // precio unitario que ya viene con descuentos por cantidad en tu contexto
+        unit_price: Number(it.price), // precio unitario con descuentos por cantidad
       }));
-
-      // Si hay descuento por transferencia no aplica acá, porque MP es precio "real".
-      // Si querés aplicar cupón automático igual ya está reflejado en it.price según tu lógica.
 
       const res = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
@@ -199,9 +230,7 @@ export default function CheckoutPage() {
             phone: formData.telefono,
           },
           items,
-          shipping: contieneFisicos
-            ? { cost: envioFinal, mode: formData.metodoEntrega }
-            : null,
+          shipping: contieneFisicos ? { cost: envioFinal, mode: formData.metodoEntrega } : null,
           meta: {
             resumenEnvio,
             cupon: appliedCoupon || null,
@@ -223,7 +252,7 @@ export default function CheckoutPage() {
 
       // Redirige a MP
       const url = data.sandbox_init_point || data.init_point;
-window.location.href = url;
+      window.location.href = url;
     } catch (error) {
       console.error('Error en checkout:', error);
       alert('Hubo un error al procesar tu compra. Intenta nuevamente.');
@@ -253,32 +282,201 @@ window.location.href = url;
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-xl shadow">
         {/* CONTACTO */}
         <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Datos de contacto:</h3>
-        <input type="text" name="nombre" required value={formData.nombre} onChange={handleChange} placeholder="Nombre" className="w-full border p-2 rounded-md" />
-        <input type="text" name="apellido" required value={formData.apellido} onChange={handleChange} placeholder="Apellido" className="w-full border p-2 rounded-md" />
-        <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="Correo electrónico" className="w-full border p-2 rounded-md" />
-        <input type="tel" name="telefono" required value={formData.telefono} onChange={handleChange} placeholder="Teléfono" className="w-full border p-2 rounded-md" />
+        <input
+          type="text"
+          name="nombre"
+          required
+          value={formData.nombre}
+          onChange={handleChange}
+          placeholder="Nombre"
+          className="w-full border p-2 rounded-md"
+        />
+        <input
+          type="text"
+          name="apellido"
+          required
+          value={formData.apellido}
+          onChange={handleChange}
+          placeholder="Apellido"
+          className="w-full border p-2 rounded-md"
+        />
+        <input
+          type="email"
+          name="email"
+          required
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="Correo electrónico"
+          className="w-full border p-2 rounded-md"
+        />
+        <input
+          type="tel"
+          name="telefono"
+          required
+          value={formData.telefono}
+          onChange={handleChange}
+          placeholder="Teléfono"
+          className="w-full border p-2 rounded-md"
+        />
 
         {/* PERSONALIZACIÓN (NO SE TOCA) */}
         <div className="border-t pt-4 mt-4">
-          <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Datos para la personalización del producto:</h3>
-          <input type="text" name="evento" required value={formData.evento} onChange={handleChange} placeholder="Temática deseada (Ejemplo: Baby Shark, Unicornio...)" className="w-full border p-2 rounded-md mb-2" />
-          <input type="text" name="nombrePersonalizado" value={formData.nombrePersonalizado} onChange={handleChange} placeholder="Nombre del niño/a (opcional)" className="w-full border p-2 rounded-md mb-2" />
-          <input type="number" name="edad" value={formData.edad} onChange={handleChange} placeholder="Edad (opcional)" className="w-full border p-2 rounded-md mb-2" />
-          <input type="text" name="fechaHora" value={formData.fechaHora} onChange={handleChange} placeholder="Fecha y hora (opcional)" className="w-full border p-2 rounded-md mb-2" />
-          <input type="text" name="direccioninvitacion" value={formData.direccioninvitacion} onChange={handleChange} placeholder="Dirección para la invitación (opcional)" className="w-full border p-2 rounded-md mb-2" />
+          <h3 className="text-md font-semibold text-[#A56ABF] mb-2">
+            Datos para la personalización del producto:
+          </h3>
+          <input
+            type="text"
+            name="evento"
+            required
+            value={formData.evento}
+            onChange={handleChange}
+            placeholder="Temática deseada (Ejemplo: Baby Shark, Unicornio...)"
+            className="w-full border p-2 rounded-md mb-2"
+          />
+          <input
+            type="text"
+            name="nombrePersonalizado"
+            required
+            value={formData.nombrePersonalizado}
+            onChange={handleChange}
+            placeholder="Nombre del niño/a"
+            className="w-full border p-2 rounded-md mb-2"
+          />
+          <input
+            type="number"
+            name="edad"
+            required
+            value={formData.edad}
+            onChange={handleChange}
+            placeholder="Edad"
+            className="w-full border p-2 rounded-md mb-2"
+          />
+          <input
+            type="text"
+            name="fechaHora"
+            required
+            value={formData.fechaHora}
+            onChange={handleChange}
+            placeholder="Fecha del evento"
+            className="w-full border p-2 rounded-md mb-2"
+          />
+          <input
+            type="text"
+            name="direccioninvitacion"
+            value={formData.direccioninvitacion}
+            onChange={handleChange}
+            placeholder="Dirección para la invitación (opcional)"
+            className="w-full border p-2 rounded-md mb-2"
+          />
         </div>
 
-        {/* ENVÍO (NO SE TOCA) */}
-        {contieneFisicos && (
-          <div className="border-t pt-4 mt-4">
-            <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Envío del producto:</h3>
-            <p className="text-sm text-gray-700">
-              📦 Te contactaremos para coordinar el envío una vez confirmado tu pedido.
-            </p>
-          </div>
-        )}
+        {/* ✅ DIRECCIÓN / ENTREGA (AHORA SIEMPRE, NO IMPORTA SI ES DIGITAL O FÍSICO) */}
+        <div className="border-t pt-4 mt-4 space-y-2">
+          <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Dirección / Entrega:</h3>
 
-        <textarea name="mensaje" rows={3} value={formData.mensaje} onChange={handleChange} placeholder="Ej: Paleta de colores (opcional)" className="w-full border p-2 rounded-md mt-4" />
+          <select
+            name="metodoEntrega"
+            value={formData.metodoEntrega}
+            onChange={handleChange}
+            className="w-full border p-2 rounded-md"
+          >
+            <option value="sucursal">Retiro en sucursal (Correo Argentino)</option>
+            <option value="domicilio">Envío a domicilio</option>
+          </select>
+
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              name="provincia"
+              required
+              value={formData.provincia}
+              onChange={handleChange}
+              placeholder="Provincia"
+              className="w-full border p-2 rounded-md"
+            />
+            <input
+              type="text"
+              name="localidad"
+              required
+              value={formData.localidad}
+              onChange={handleChange}
+              placeholder="Localidad / Ciudad"
+              className="w-full border p-2 rounded-md"
+            />
+          </div>
+
+          <input
+            type="text"
+            name="cp"
+            required
+            value={formData.cp}
+            onChange={handleChange}
+            placeholder="Código Postal"
+            className="w-full border p-2 rounded-md"
+          />
+
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              name="calle"
+              required
+              value={formData.calle}
+              onChange={handleChange}
+              placeholder="Calle"
+              className="w-full border p-2 rounded-md"
+            />
+            <input
+              type="text"
+              name="numero"
+              required
+              value={formData.numero}
+              onChange={handleChange}
+              placeholder="Número"
+              className="w-full border p-2 rounded-md"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              name="piso"
+              value={formData.piso}
+              onChange={handleChange}
+              placeholder="Piso (opcional)"
+              className="w-full border p-2 rounded-md"
+            />
+            <input
+              type="text"
+              name="departamento"
+              value={formData.departamento}
+              onChange={handleChange}
+              placeholder="Depto (opcional)"
+              className="w-full border p-2 rounded-md"
+            />
+          </div>
+
+          <input
+            type="text"
+            name="barrio"
+            value={formData.barrio}
+            onChange={handleChange}
+            placeholder="Barrio (opcional)"
+            className="w-full border p-2 rounded-md"
+          />
+
+          <p className="text-xs text-gray-600">
+            *Pedimos estos datos para coordinar la entrega y tener tu pedido completo.
+          </p>
+        </div>
+
+        <textarea
+          name="mensaje"
+          rows={3}
+          value={formData.mensaje}
+          onChange={handleChange}
+          placeholder="Ej: Paleta de colores (opcional)"
+          className="w-full border p-2 rounded-md mt-4"
+        />
 
         {/* MÉTODO DE PAGO */}
         <div className="border-t pt-4 mt-4 space-y-3">
@@ -295,7 +493,7 @@ window.location.href = url;
             />
             <div>
               <p className="font-medium text-gray-800">Mercado Pago</p>
-              <p className="text-sm text-gray-600">Pagás con tarjeta, saldo o cuotas (Checkout Pro).</p>
+              <p className="text-sm text-gray-600">Pagás con tarjeta, saldo o cuotas.</p>
             </div>
           </label>
 
@@ -318,12 +516,15 @@ window.location.href = url;
         </div>
 
         <p className="text-sm text-gray-600">
-          (*) Campos obligatorios. Una vez finalizada la compra podrás visualizar el alias para realizar el pago (si elegiste transferencia).
+          (*) Campos obligatorios. Una vez finalizada la compra podrás visualizar el alias para realizar el pago (si
+          elegiste transferencia).
         </p>
 
         {/* Resumen visible */}
         <div className="bg-gray-50 p-4 rounded-lg text-right border mt-4 text-sm space-y-1">
-          <p>Subtotal original: <span className="font-medium">${subtotalOriginal.toFixed(2)}</span></p>
+          <p>
+            Subtotal original: <span className="font-medium">${subtotalOriginal.toFixed(2)}</span>
+          </p>
 
           {descuentoAutomatico > 0 && (
             <p className="text-[#A084CA]">
@@ -331,11 +532,14 @@ window.location.href = url;
             </p>
           )}
 
-          <p>Subtotal: <span className="font-medium">${cartSubtotal.toFixed(2)}</span></p>
+          <p>
+            Subtotal: <span className="font-medium">${cartSubtotal.toFixed(2)}</span>
+          </p>
 
           {discount > 0 && (
             <p className="text-green-600">
-              Cupón ({(discount * 100).toFixed(0)}%): <span className="font-medium">-${cartDiscountAmount.toFixed(2)}</span>
+              Cupón ({(discount * 100).toFixed(0)}%):{' '}
+              <span className="font-medium">-${cartDiscountAmount.toFixed(2)}</span>
             </p>
           )}
 
@@ -345,11 +549,14 @@ window.location.href = url;
             </p>
           )}
 
-          <p>Envío: <span className="font-medium">{envioPrecio !== null ? `$${envioPrecio.toFixed(2)}` : 'a coordinar'}</span></p>
-
-          <p className="text-lg font-bold mt-2">
-            Total: ${totalFinal.toFixed(2)}
+          <p>
+            Envío:{' '}
+            <span className="font-medium">
+              {envioPrecio !== null ? `$${envioPrecio.toFixed(2)}` : 'a coordinar'}
+            </span>
           </p>
+
+          <p className="text-lg font-bold mt-2">Total: ${totalFinal.toFixed(2)}</p>
         </div>
 
         <button
