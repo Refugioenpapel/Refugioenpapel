@@ -507,7 +507,7 @@ export default function CheckoutPage() {
               className="mt-1"
             />
             <div>
-              <p className="font-medium text-gray-800">Transferencia Bancaria 10% OFF</p>
+              <p className="font-medium text-gray-800">Transferencia Bancaria</p>
               <p className="text-sm text-gray-600">
                 Se aplica <strong>10% OFF</strong> sin considerar envío. Verás los datos de pago al confirmar la compra.
               </p>
