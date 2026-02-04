@@ -493,7 +493,7 @@ export default function CheckoutPage() {
             />
             <div>
               <p className="font-medium text-gray-800">Mercado Pago</p>
-              <p className="text-sm text-gray-600">Pagás con tarjeta, saldo o cuotas.</p>
+              <p className="text-sm text-gray-600">Tarjeta de crédito o débito.</p>
             </div>
           </label>
 
@@ -507,9 +507,9 @@ export default function CheckoutPage() {
               className="mt-1"
             />
             <div>
-              <p className="font-medium text-gray-800">Transferencia bancaria (10% OFF)</p>
+              <p className="font-medium text-gray-800">Transferencia Bancaria 10% OFF</p>
               <p className="text-sm text-gray-600">
-                Se aplica <strong>10% de descuento</strong> al total (sin envío). Luego verás el alias en el resumen.
+                Se aplica <strong>10% OFF</strong> sin considerar envío. Verás los datos de pago al confirmar la compra.
               </p>
             </div>
           </label>

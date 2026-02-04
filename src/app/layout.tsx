@@ -84,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 text-[#444444]
                 font-just-another-hand
               ">
-                20% OFF EN SOUVENIRS DESDE 20 UNIDADES • ENVÍOS A TODO EL PAÍS
+                10% OFF EN SOUVENIRS DESDE 20 UNIDADES • ENVÍOS A TODO EL PAÍS
               </div>
             </div>
 

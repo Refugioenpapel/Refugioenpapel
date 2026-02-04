@@ -34,7 +34,7 @@ export function getBadgeMeta(product?: Product): BadgeMeta {
 
   // 2) Fallback por categoría (usar el nombre "slugificado")
   const byCategory: Record<string, BadgeMeta> = {
-    "souvenirs": { label: "20% OFF comprando desde 20 u." },
+    "souvenirs": { label: "10% OFF comprando desde 20 u." },
     // "candy-deco": { label: "Candy-Decoración" }, // <-- acá es donde debe estar
     // "productos-digitales": { label: "Ideal para decorar" },
   };
