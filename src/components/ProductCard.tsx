@@ -5,13 +5,10 @@ import Link from 'next/link';
 import type { Product } from 'types/product';
 import { getBadgeMeta } from '@lib/productBadges';
 import BadgePill from '@components/ui/BadgePill';
+import PriceBlock from '@components/ui/PriceBlock';
 
 export default function ProductCard({ product }: { product: Product }) {
   const badge = getBadgeMeta(product);
-  const price = product.price ?? 0;
-  const discount = product.discount ?? 0;
-  const hasDiscount = discount > 0;
-  const discountedPrice = (price * (1 - discount / 100)).toFixed(2);
 
   return (
     <article
@@ -40,7 +37,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
 
         {/* 🔹 Contenido del producto */}
-        <div className="p-4 text-left">
+        <div className="p-4 text-center">
           <h3 className="line-clamp-2 text-base font-semibold text-gray-800">
             {product.name}
           </h3>
@@ -51,22 +48,15 @@ export default function ProductCard({ product }: { product: Product }) {
             </p>
           )}
 
-          <div className="mt-3 flex items-baseline gap-2">
-            {hasDiscount ? (
-              <>
-                <span className="text-gray-400 line-through text-sm">
-                  ${price.toFixed(2)}
-                </span>
-                <span className="text-lg font-bold text-[#A084CA]">
-                  ${discountedPrice}
-                </span>
-              </>
-            ) : (
-              <span className="text-lg font-bold text-[#A084CA]">
-                ${price.toFixed(2)}
-              </span>
-            )}
-          </div>
+          <PriceBlock
+            className="mt-3"
+            price={product.price ?? 0}
+            discountPct={product.discount ?? 0}
+            priceClassName="text-lg font-bold text-[#A084CA]"
+            compareClassName="text-gray-400 line-through text-sm"
+            transferClassName="text-sm text-gray-500"
+            align="center"
+          />
         </div>
       </Link>
     </article>

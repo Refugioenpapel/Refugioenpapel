@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { Product } from 'types/product';
 import BadgePill from '@components/ui/BadgePill';
 import { getBadgeMeta } from '@lib/productBadges';
+import PriceBlock from '@components/ui/PriceBlock';
 
 interface ProductGalleryProps {
   products: Product[];
@@ -47,10 +48,6 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
       "
     >
       {products.map((product) => {
-        const price = product.price ?? 0;
-        const discount = product.discount ?? 0;
-        const hasDiscount = discount > 0;
-        const discountedPrice = (price * (1 - discount / 100)).toFixed(2);
         const badge = getBadgeMeta(product);
 
         return (
@@ -88,7 +85,7 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
                 )}
               </div>
 
-              <div className="p-4 sm:p-5 text-left">
+              <div className="p-4 sm:p-5 text-center">
                 <h3 className="line-clamp-2 text-base font-semibold text-gray-800">
                   {product.name}
                 </h3>
@@ -97,22 +94,15 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
                   {product.description} {!product.is_physical && '🖨️'}
                 </p>
 
-                <div className="mt-3 flex items-baseline gap-2">
-                  {hasDiscount ? (
-                    <>
-                      <span className="text-gray-400 line-through text-sm">
-                        ${price.toFixed(2)}
-                      </span>
-                      <span className="text-lg font-bold text-[#A084CA]">
-                        ${discountedPrice}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-lg font-bold text-[#A084CA]">
-                      ${price.toFixed(2)}
-                    </span>
-                  )}
-                </div>
+                <PriceBlock
+                  className="mt-3"
+                  price={product.price ?? 0}
+                  discountPct={product.discount ?? 0}
+                  priceClassName="text-lg font-bold text-[#A084CA]"
+                  compareClassName="text-gray-400 line-through text-sm"
+                  transferClassName="text-sm text-gray-500"
+                  align="center"
+                />
               </div>
             </Link>
           </article>

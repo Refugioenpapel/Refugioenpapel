@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Product } from 'types/product';
 import { getBadgeMeta } from '@lib/productBadges';
 import BadgePill from '@components/ui/BadgePill';
+import PriceBlock from '@components/ui/PriceBlock';
 
 type Props = {
   title?: string;
@@ -103,7 +104,7 @@ export default function ProductCarousel({
                   )}
                 </div>
 
-                <div className="p-3">
+                <div className="p-3 text-center">
                   <h3 className="line-clamp-2 text-base font-semibold text-gray-800">{p.name}</h3>
 
                   {p.description && (
@@ -111,11 +112,13 @@ export default function ProductCarousel({
                   )}
 
                   {typeof p.price === 'number' && (
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-lg font-bold text-[#A084CA]">
-                        ${p.price.toFixed(2)}
-                      </span>
-                    </div>
+                    <PriceBlock
+                      className="mt-3"
+                      price={p.price}
+                      priceClassName="text-lg font-bold text-[#A084CA]"
+                      transferClassName="text-sm text-gray-500"
+                      align="center"
+                    />
                   )}
                 </div>
               </Link>

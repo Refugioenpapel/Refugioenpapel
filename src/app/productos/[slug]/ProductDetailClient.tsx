@@ -9,6 +9,7 @@ import {
   GENERIC_PHYSICAL_DESCRIPTION,
   GENERIC_DIGITAL_DESCRIPTION,
 } from '@data/sharedDescriptions';
+import PriceBlock from '@components/ui/PriceBlock';
 
 type Variant = { label: string; price: number };
 
@@ -118,9 +119,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           <p className="text-gray-700 mb-4">{product.description}</p>
 
           {/* PRECIO (según variante seleccionada) */}
-          <p className="text-lg font-bold text-gray-800 mb-2">
-            ${Number(selectedVariant.price || 0).toFixed(2)}
-          </p>
+          <PriceBlock
+            className="mb-2"
+            price={Number(selectedVariant.price || 0)}
+            priceClassName="text-lg font-bold text-gray-800"
+            transferClassName="text-sm text-gray-600"
+          />
 
           {/* Hint de descuento por cantidad */}
           {hasBulkNew && (

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchProducts } from "@lib/supabase/products";
+import PriceBlock from "@components/ui/PriceBlock";
 
 export default function BuscarPage() {
   const searchParams = useSearchParams();
@@ -64,7 +65,7 @@ export default function BuscarPage() {
                   />
                 </div>
 
-                <div className="p-4 flex-1 flex flex-col justify-between">
+                <div className="p-4 flex-1 flex flex-col justify-between text-center">
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-1">
                     {product.name}
                   </h3>
@@ -75,22 +76,24 @@ export default function BuscarPage() {
                     </p>
                   )}
 
-                  <div className="mt-2">
-                    {hasVariants ? (
-                      <>
-                        {/* Solo mostramos el precio sin tachar */}
-                        <span className="text-base font-bold">
-                          {!product.is_physical && '🔥 Desde'} ${finalPrice?.toFixed(2)}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-base font-bold text-pink-600">
-                          ${finalPrice?.toFixed(2) ?? '—'}
-                        </span>
-                      </>
-                    )}
-                  </div>
+                  {hasVariants ? (
+                    <PriceBlock
+                      className="mt-2"
+                      price={finalPrice ?? null}
+                      prefix={!product.is_physical ? "🔥 Desde" : undefined}
+                      priceClassName="text-base font-bold"
+                      transferClassName="text-sm text-gray-500"
+                      align="center"
+                    />
+                  ) : (
+                    <PriceBlock
+                      className="mt-2"
+                      price={finalPrice ?? null}
+                      priceClassName="text-base font-bold text-pink-600"
+                      transferClassName="text-sm text-gray-500"
+                      align="center"
+                    />
+                  )}
                 </div>
               </Link>
             );
