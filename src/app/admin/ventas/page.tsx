@@ -34,12 +34,26 @@ export default function AdminVentasPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
 
+  const getAccessToken = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    let token = sessionData.session?.access_token || null;
+
+    if (!token) {
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        throw new Error(`No authenticated session (${refreshError.message})`);
+      }
+      token = refreshed.session?.access_token || null;
+    }
+
+    if (!token) throw new Error('No authenticated session');
+    return token;
+  };
+
   const loadOrders = async () => {
     setFetching(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('No authenticated session');
+      const token = await getAccessToken();
 
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
@@ -78,9 +92,7 @@ export default function AdminVentasPage() {
   const updateStatus = async (orderId: string, status: string) => {
     setSavingOrderId(orderId);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('No authenticated session');
+      const token = await getAccessToken();
 
       const res = await fetch('/api/admin/orders', {
         method: 'PATCH',

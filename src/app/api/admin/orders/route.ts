@@ -10,6 +10,7 @@ async function requireAdmin(req: Request) {
     : '';
 
   if (!token) {
+    console.error('admin.orders auth missing bearer token');
     return { ok: false as const, reason: 'unauthorized' };
   }
 
@@ -20,6 +21,7 @@ async function requireAdmin(req: Request) {
   } = await supabaseAdmin.auth.getUser(token);
 
   if (userError || !user) {
+    console.error('admin.orders auth invalid token', userError);
     return { ok: false as const, reason: 'unauthorized' };
   }
 
@@ -35,6 +37,12 @@ async function requireAdmin(req: Request) {
     .maybeSingle();
 
   if (profileError || profile?.rol !== 'admin') {
+    console.error('admin.orders forbidden', {
+      userId: user.id,
+      email: user.email,
+      profileError: profileError?.message || null,
+      profileRol: profile?.rol || null,
+    });
     return { ok: false as const, reason: 'forbidden' };
   }
 
@@ -44,7 +52,8 @@ async function requireAdmin(req: Request) {
 export async function GET(req: Request) {
   const adminCheck = await requireAdmin(req);
   if (!adminCheck.ok) {
-    return NextResponse.json({ error: adminCheck.reason }, { status: 401 });
+    const status = adminCheck.reason === 'forbidden' ? 403 : 401;
+    return NextResponse.json({ error: adminCheck.reason }, { status });
   }
 
   const url = new URL(req.url);
@@ -76,7 +85,8 @@ export async function GET(req: Request) {
 export async function PATCH(req: Request) {
   const adminCheck = await requireAdmin(req);
   if (!adminCheck.ok) {
-    return NextResponse.json({ error: adminCheck.reason }, { status: 401 });
+    const status = adminCheck.reason === 'forbidden' ? 403 : 401;
+    return NextResponse.json({ error: adminCheck.reason }, { status });
   }
 
   const body = await req.json().catch(() => null);
