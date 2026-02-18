@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAdminAccess } from 'hooks/useAdminAccess';
+import { supabase } from '@lib/supabaseClient';
 
 type OrderRow = {
   order_id: string;
@@ -36,11 +37,19 @@ export default function AdminVentasPage() {
   const loadOrders = async () => {
     setFetching(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error('No authenticated session');
+
       const params = new URLSearchParams();
       if (statusFilter) params.set('status', statusFilter);
       params.set('limit', '150');
 
-      const res = await fetch(`/api/admin/orders?${params.toString()}`);
+      const res = await fetch(`/api/admin/orders?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -69,9 +78,16 @@ export default function AdminVentasPage() {
   const updateStatus = async (orderId: string, status: string) => {
     setSavingOrderId(orderId);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error('No authenticated session');
+
       const res = await fetch('/api/admin/orders', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ orderId, status }),
       });
       const data = await res.json();
@@ -184,4 +200,3 @@ export default function AdminVentasPage() {
     </div>
   );
 }
-

@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { getSupabaseAdmin } from '@lib/supabaseAdmin';
 
 const FALLBACK_ADMIN_EMAIL = 'mirefugioenpapel@gmail.com';
 
-async function requireAdmin() {
-  const supabaseAuth = createRouteHandlerClient({ cookies });
+async function requireAdmin(req: Request) {
+  const authHeader = req.headers.get('authorization') || '';
+  const token = authHeader.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : '';
+
+  if (!token) {
+    return { ok: false as const, reason: 'unauthorized' };
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
   const {
     data: { user },
     error: userError,
-  } = await supabaseAuth.auth.getUser();
+  } = await supabaseAdmin.auth.getUser(token);
 
   if (userError || !user) {
     return { ok: false as const, reason: 'unauthorized' };
@@ -21,7 +28,6 @@ async function requireAdmin() {
     return { ok: true as const, userId: user.id };
   }
 
-  const supabaseAdmin = getSupabaseAdmin();
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('rol')
@@ -36,7 +42,7 @@ async function requireAdmin() {
 }
 
 export async function GET(req: Request) {
-  const adminCheck = await requireAdmin();
+  const adminCheck = await requireAdmin(req);
   if (!adminCheck.ok) {
     return NextResponse.json({ error: adminCheck.reason }, { status: 401 });
   }
@@ -68,7 +74,7 @@ export async function GET(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const adminCheck = await requireAdmin();
+  const adminCheck = await requireAdmin(req);
   if (!adminCheck.ok) {
     return NextResponse.json({ error: adminCheck.reason }, { status: 401 });
   }
@@ -98,4 +104,3 @@ export async function PATCH(req: Request) {
 
   return NextResponse.json({ ok: true, order: data });
 }
-
