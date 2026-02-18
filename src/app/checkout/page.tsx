@@ -201,6 +201,23 @@ export default function CheckoutPage() {
       // Guardar para /resumen (así si vuelve de MP, ya está todo listo)
       localStorage.setItem('lastCheckoutInfo', JSON.stringify(templateParams));
       localStorage.setItem('lastCart', JSON.stringify(cartItems));
+      
+      const backupRes = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: numeroPedido,
+          paymentMethod,
+          checkoutInfo: templateParams,
+          cartItems,
+          amountTotal: totalFinal,
+        }),
+      });
+
+      if (!backupRes.ok) {
+        const backupData = await safeJson(backupRes);
+        console.error('No se pudo guardar backup del pedido:', backupData);
+      }
 
       // ✅ Si eligió TRANSFERENCIA: enviamos mail como venías haciendo y vamos a resumen
       if (paymentMethod === 'transfer') {

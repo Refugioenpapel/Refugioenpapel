@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { mpClient } from '@lib/mercadopago';
+import { getSupabaseAdmin } from '@lib/supabaseAdmin';
 import { Preference } from 'mercadopago';
 
 function parsePhone(raw?: string) {
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { items, orderId, payer } = body;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
 
     const preference = new Preference(mpClient);
     const phoneObj = parsePhone(payer?.phone);
@@ -48,9 +50,9 @@ export async function POST(req: Request) {
         external_reference: String(orderId),
 
         back_urls: {
-          success: `${process.env.NEXT_PUBLIC_SITE_URL}/resumen?pedido=${orderId}&email=${encodeURIComponent(email)}`,
-          failure: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=failure`,
-          pending: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout?status=pending`,
+          success: `${siteUrl}/resumen?pedido=${orderId}&email=${encodeURIComponent(email)}`,
+          failure: `${siteUrl}/checkout?status=failure`,
+          pending: `${siteUrl}/checkout?status=pending`,
         },
 
         auto_return: 'approved',
@@ -58,10 +60,22 @@ export async function POST(req: Request) {
         // Opcional para sandbox:
         // sandbox: true,
 
-        // Lo dejamos para cuando implementes webhook:
-        // notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/mercadopago/webhook`,
+        notification_url: `${siteUrl}/api/mercadopago/webhook`,
       },
     });
+
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      await supabaseAdmin
+        .from('orders')
+        .update({
+          mp_preference_id: String((result as any)?.id || ''),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('order_id', String(orderId));
+    } catch (supabaseError) {
+      console.error('No se pudo guardar mp_preference_id:', supabaseError);
+    }
 
     return NextResponse.json({
       init_point: result.init_point,
