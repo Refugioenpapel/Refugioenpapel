@@ -40,6 +40,12 @@ export async function POST(req: Request) {
       .upsert(payload, { onConflict: 'order_id' });
 
     if (error) {
+      console.error('orders.create upsert error:', {
+        message: error.message,
+        details: (error as any).details,
+        hint: (error as any).hint,
+        code: (error as any).code,
+      });
       return NextResponse.json(
         { error: 'No se pudo guardar el pedido en Supabase', detail: error.message },
         { status: 500 }
@@ -48,10 +54,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
+    console.error('orders.create route error:', error);
     return NextResponse.json(
       { error: 'Error creando pedido', detail: error?.message || null },
       { status: 500 }
     );
   }
 }
-

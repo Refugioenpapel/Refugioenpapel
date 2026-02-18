@@ -217,6 +217,8 @@ export default function CheckoutPage() {
       if (!backupRes.ok) {
         const backupData = await safeJson(backupRes);
         console.error('No se pudo guardar backup del pedido:', backupData);
+        alert('No se pudo registrar el pedido. Intenta nuevamente en unos segundos.');
+        return;
       }
 
       // ✅ Si eligió TRANSFERENCIA: enviamos mail como venías haciendo y vamos a resumen
