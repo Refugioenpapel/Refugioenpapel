@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@lib/supabaseAdmin';
+import { sendOrderEmail } from '@lib/email/sendOrderEmail';
 
 const FALLBACK_ADMIN_EMAIL = 'mirefugioenpapel@gmail.com';
 
@@ -65,7 +66,7 @@ export async function GET(req: Request) {
   let query = supabaseAdmin
     .from('orders')
     .select(
-      'order_id,status,payment_method,payment_status,customer_name,customer_email,amount_total,currency,email_sent,created_at,updated_at'
+      'order_id,status,payment_method,payment_status,mp_payment_id,customer_name,customer_email,amount_total,currency,email_sent,email_sent_at,created_at,updated_at'
     )
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -92,24 +93,80 @@ export async function PATCH(req: Request) {
   const body = await req.json().catch(() => null);
   const orderId = String(body?.orderId || '').trim();
   const status = String(body?.status || '').trim();
+  const sendEmail = Boolean(body?.sendEmail);
 
-  if (!orderId || !status) {
-    return NextResponse.json({ error: 'orderId y status son requeridos' }, { status: 400 });
+  if (!orderId || (!status && !sendEmail)) {
+    return NextResponse.json({ error: 'orderId y status son requeridos (o sendEmail=true)' }, { status: 400 });
   }
 
   const supabaseAdmin = getSupabaseAdmin();
+  const { data: existingOrder, error: existingOrderError } = await supabaseAdmin
+    .from('orders')
+    .select('order_id,status,checkout_data,email_sent')
+    .eq('order_id', orderId)
+    .maybeSingle();
+
+  if (existingOrderError) {
+    return NextResponse.json({ error: existingOrderError.message }, { status: 500 });
+  }
+
+  if (!existingOrder) {
+    return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (status) {
+    updatePayload.status = status;
+  }
+
   const { data, error } = await supabaseAdmin
     .from('orders')
-    .update({
-      status,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq('order_id', orderId)
-    .select('order_id,status,updated_at')
+    .select('order_id,status,updated_at,email_sent')
     .maybeSingle();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const shouldSendEmail =
+    sendEmail || (status === 'paid' && !Boolean(existingOrder.email_sent));
+
+  if (shouldSendEmail) {
+    const checkoutData = (existingOrder.checkout_data || {}) as Record<string, unknown>;
+    if (!checkoutData || Object.keys(checkoutData).length === 0) {
+      return NextResponse.json(
+        { error: 'No hay checkout_data para reenviar email en este pedido' },
+        { status: 400 }
+      );
+    }
+
+    try {
+      await sendOrderEmail({
+        templateParams: {
+          ...checkoutData,
+          order_id: orderId,
+        },
+      });
+
+      await supabaseAdmin
+        .from('orders')
+        .update({
+          email_sent: true,
+          email_sent_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('order_id', orderId);
+    } catch (sendError: any) {
+      console.error('admin.orders send email error:', sendError);
+      return NextResponse.json(
+        { error: 'No se pudo enviar email', detail: sendError?.message || null },
+        { status: 500 }
+      );
+    }
   }
 
   return NextResponse.json({ ok: true, order: data });

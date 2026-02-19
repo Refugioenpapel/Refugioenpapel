@@ -58,6 +58,13 @@ export async function POST(req: Request) {
     const paymentStatus = String(payment?.status || '');
     const orderId = String(payment?.external_reference || '').trim();
 
+    console.log('MP webhook received', {
+      type,
+      paymentId,
+      paymentStatus,
+      orderId,
+    });
+
     if (!orderId) {
       return NextResponse.json({ ok: true, ignored: 'missing_external_reference' });
     }
@@ -106,6 +113,8 @@ export async function POST(req: Request) {
         },
       });
 
+      console.log('MP webhook email sent', { orderId, paymentId });
+
       await supabaseAdmin
         .from('orders')
         .update({
@@ -118,6 +127,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
+    console.error('MP webhook error:', error);
     return NextResponse.json(
       { error: 'Error procesando webhook MP', detail: error?.message || null },
       { status: 500 }

@@ -9,11 +9,13 @@ type OrderRow = {
   status: string;
   payment_method: string;
   payment_status: string | null;
+  mp_payment_id: string | null;
   customer_name: string | null;
   customer_email: string | null;
   amount_total: number;
   currency: string;
   email_sent: boolean;
+  email_sent_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -33,6 +35,7 @@ export default function AdminVentasPage() {
   const [fetching, setFetching] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+  const [resendingOrderId, setResendingOrderId] = useState<string | null>(null);
 
   const getAccessToken = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -118,6 +121,34 @@ export default function AdminVentasPage() {
     }
   };
 
+  const resendEmail = async (orderId: string) => {
+    setResendingOrderId(orderId);
+    try {
+      const token = await getAccessToken();
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderId, sendEmail: true }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.detail || data?.error || 'No se pudo reenviar el email');
+      }
+
+      await loadOrders();
+      alert('Email reenviado correctamente.');
+    } catch (error: any) {
+      console.error(error);
+      alert(`No se pudo reenviar el email. ${error?.message || ''}`.trim());
+    } finally {
+      setResendingOrderId(null);
+    }
+  };
+
   if (loading) {
     return <p className="p-6">Verificando acceso...</p>;
   }
@@ -159,6 +190,7 @@ export default function AdminVentasPage() {
               <th className="text-left p-2">Pedido</th>
               <th className="text-left p-2">Estado</th>
               <th className="text-left p-2">Pago</th>
+              <th className="text-left p-2">MP id</th>
               <th className="text-left p-2">Cliente</th>
               <th className="text-left p-2">Email</th>
               <th className="text-right p-2">Total</th>
@@ -176,32 +208,45 @@ export default function AdminVentasPage() {
                   {o.payment_method}
                   {o.payment_status ? ` (${o.payment_status})` : ''}
                 </td>
+                <td className="p-2">{o.mp_payment_id || '-'}</td>
                 <td className="p-2">{o.customer_name || '-'}</td>
                 <td className="p-2">{o.customer_email || '-'}</td>
                 <td className="p-2 text-right">
                   {o.currency} {Number(o.amount_total || 0).toFixed(2)}
                 </td>
-                <td className="p-2">{o.email_sent ? 'si' : 'no'}</td>
+                <td className="p-2">
+                  {o.email_sent ? `si${o.email_sent_at ? ` (${new Date(o.email_sent_at).toLocaleString('es-AR')})` : ''}` : 'no'}
+                </td>
                 <td className="p-2">{new Date(o.created_at).toLocaleString('es-AR')}</td>
                 <td className="p-2">
-                  <select
-                    className="border rounded px-2 py-1 text-xs"
-                    defaultValue={o.status}
-                    disabled={savingOrderId === o.order_id}
-                    onChange={(e) => updateStatus(o.order_id, e.target.value)}
-                  >
-                    {RECOVERY_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="border rounded px-2 py-1 text-xs"
+                      defaultValue={o.status}
+                      disabled={savingOrderId === o.order_id}
+                      onChange={(e) => updateStatus(o.order_id, e.target.value)}
+                    >
+                      {RECOVERY_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={resendingOrderId === o.order_id}
+                      className="border rounded px-2 py-1 text-xs hover:bg-gray-50"
+                      onClick={() => resendEmail(o.order_id)}
+                    >
+                      {resendingOrderId === o.order_id ? 'Enviando...' : 'Reenviar email'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
             {orders.length === 0 && (
               <tr>
-                <td className="p-4 text-center text-gray-500" colSpan={9}>
+                <td className="p-4 text-center text-gray-500" colSpan={10}>
                   No hay ventas para este filtro.
                 </td>
               </tr>
