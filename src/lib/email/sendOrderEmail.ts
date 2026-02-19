@@ -6,6 +6,7 @@ export async function sendOrderEmail({ templateParams }: SendOrderEmailParams) {
   const serviceId = process.env.EMAILJS_SERVICE_ID || 'service_wg78xcn';
   const templateId = process.env.EMAILJS_TEMPLATE_ID || 'template_b529mq6';
   const publicKey = process.env.EMAILJS_PUBLIC_KEY || 'cHz6pQf3uU5jTYI48';
+  const privateKey = process.env.EMAILJS_PRIVATE_KEY;
 
   const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
@@ -16,6 +17,7 @@ export async function sendOrderEmail({ templateParams }: SendOrderEmailParams) {
       service_id: serviceId,
       template_id: templateId,
       user_id: publicKey,
+      accessToken: privateKey,  // privada para non-browser
       template_params: templateParams,
     }),
   });
