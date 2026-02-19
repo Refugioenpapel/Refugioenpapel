@@ -16,6 +16,8 @@ export default function ResumenPage() {
   const searchParams = useSearchParams();
   const numeroPedido = searchParams.get('pedido');
   const emailParam = searchParams.get('email');
+  const paymentIdParam = searchParams.get('payment_id');
+  const statusParam = searchParams.get('status') || searchParams.get('collection_status');
 
   const [products, setProducts] = useState<CartItem[]>([]);
   const [checkoutInfo, setCheckoutInfo] = useState<any>(null);
@@ -66,6 +68,38 @@ export default function ResumenPage() {
   const totalFinal = checkoutInfo?.total
     ? parseFloat(checkoutInfo.total)
     : Math.max(0, subtotalConAuto - descuentoCupon + envio);
+
+  useEffect(() => {
+    if (!isMP) return;
+    if (!numeroPedido) return;
+
+    const sentKey = `email_confirm_attempt_${numeroPedido}`;
+    if (sessionStorage.getItem(sentKey) === '1') return;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/orders/confirm-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: numeroPedido,
+            paymentId: paymentIdParam || undefined,
+            status: statusParam || undefined,
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error('confirm-payment failed:', data);
+          return;
+        }
+
+        sessionStorage.setItem(sentKey, '1');
+      } catch (error) {
+        console.error('confirm-payment error:', error);
+      }
+    })();
+  }, [isMP, numeroPedido, paymentIdParam, statusParam]);
 
   useEffect(() => {
     if (!checkoutInfo) return;
@@ -167,4 +201,3 @@ export default function ResumenPage() {
     </div>
   );
 }
-
