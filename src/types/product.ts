@@ -13,6 +13,7 @@ export interface Product {
   original_price?: number;
 
   longDescription?: string;
+  badge_label?: string | null;
   file_url?: string;
 
   // imágenes

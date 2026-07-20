@@ -73,20 +73,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          {/* ⭐ Marquesina fija */}
           <div className="fixed top-0 left-0 right-0 w-full z-40">
             {/* Fondo principal de marquesina */}
-            <div className="bg-[#e6dbd8] py-0.5 overflow-hidden">
-              <div className="
-                animate-marquee
-                whitespace-nowrap
-                text-[1.35rem]
-                leading-none
-                min-w-full
-                inline-block
-                text-[#444444]
-                font-just-another-hand
-              ">
+            <div className="bg-[#e6dbd8] py-0.5">
+            <div className="flex justify-center">
+              <span className="text-[1.35rem] leading-none text-center text-[#444444] font-just-another-hand">
                 10% OFF CON TRANSFERENCIA • ENVÍOS A TODO EL PAÍS
-              </div>
+              </span>
             </div>
+          </div>
 
   {/* Barrita rosa de abajo */}
   <div className="w-full h-[4px] bg-[#ffabcc]" />

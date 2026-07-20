@@ -72,7 +72,7 @@ export default function BuscarPage() {
 
                   {product.description && (
                     <p className="text-sm sm:text-base text-gray-600 line-clamp-1">
-                      {product.description} 🖨️
+                      {product.description}
                     </p>
                   )}
 

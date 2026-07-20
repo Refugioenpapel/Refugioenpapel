@@ -44,7 +44,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
           {product.description && (
             <p className="mt-1 line-clamp-2 text-sm text-gray-500">
-              {product.description} {!product.is_physical && '🖨️'}
+              {product.description}
             </p>
           )}
 

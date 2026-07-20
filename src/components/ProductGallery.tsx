@@ -91,7 +91,7 @@ export default function ProductGallery({ products }: ProductGalleryProps) {
                 </h3>
 
                 <p className="mt-1 line-clamp-2 text-sm text-gray-500">
-                  {product.description} {!product.is_physical && '🖨️'}
+                  {product.description}
                 </p>
 
                 <PriceBlock

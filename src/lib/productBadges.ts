@@ -19,6 +19,11 @@ export function getBadgeMeta(product?: Product): BadgeMeta {
   const slug = (product.slug || "").toLowerCase();
   const cat = normalizeCategory(product.category);
 
+  // 0) Badge específico por producto
+  if (typeof product.badge_label === 'string' && product.badge_label.trim() !== '') {
+    return { label: product.badge_label.trim() };
+  }
+
   // 1) Excepciones por slug (null = no mostrar)
   const bySlug: Record<string, BadgeMeta> = {
     "kit-imprimible-nene": null,
@@ -34,8 +39,9 @@ export function getBadgeMeta(product?: Product): BadgeMeta {
 
   // 2) Fallback por categoría (usar el nombre "slugificado")
   const byCategory: Record<string, BadgeMeta> = {
-    "souvenirs": { label: "10% OFF comprando desde 20 u." },
-    // "candy-deco": { label: "Candy-Decoración" }, // <-- acá es donde debe estar
+    // Dejar vacío para que no haya badges automáticos por categoría.
+    // Si querés agregar un badge por categoría, definilo aquí.
+    // "candy-deco": { label: "Candy-Decoración" },
     // "productos-digitales": { label: "Ideal para decorar" },
   };
 

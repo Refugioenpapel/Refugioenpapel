@@ -17,27 +17,7 @@ export async function fetchProducts(options?: {
 }): Promise<Product[]> {
   let query = supabase
     .from("products")
-    .select(`
-      id,
-      name,
-      description,
-      price,
-      discount,
-      created_at,
-      slug,
-      updated_at,
-      category,
-      images,
-      image_public_ids,
-      variants,
-      is_physical,
-      bulk_discounts,
-      bulk_threshold_qty,
-      bulk_discount_pct,
-      is_featured,
-      file_url,
-      deleted_at
-    `)
+    .select('*')
     .order("id", { ascending: false });
 
   if (options?.category) query = query.eq("category", options.category);
@@ -61,27 +41,7 @@ export async function fetchProducts(options?: {
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {
   const { data, error } = await supabase
     .from("products")
-    .select(`
-      id,
-      name,
-      description,
-      price,
-      discount,
-      created_at,
-      slug,
-      updated_at,
-      category,
-      images,
-      image_public_ids,
-      variants,
-      is_physical,
-      bulk_discounts,
-      bulk_threshold_qty,
-      bulk_discount_pct,
-      is_featured,
-      file_url,
-      deleted_at
-    `)
+    .select('*')
     .eq("slug", slug)
     .single();
 

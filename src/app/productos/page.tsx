@@ -26,7 +26,7 @@ export default function ProductosPage() {
     setLoading(true);
     let query = supabase
       .from("products")
-      .select("id, name, slug, price, description, images, category, discount, is_physical, variants, bulk_discounts");
+      .select('*');
 
     if (categoria) {
       query = query.eq("category", categoria);

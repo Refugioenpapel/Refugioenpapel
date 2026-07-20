@@ -1,13 +1,21 @@
 // components/admin/ProductForm.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { uploadImageToCloudinary } from '@lib/cloudinary/uploadImage';
 
 
 type Variant = { name: string; price: number };
+
+type ImageItem = {
+  id: string;
+  url: string;
+  publicId?: string;
+  file?: File;
+  existing: boolean;
+};
 
 type ProductFormProps = {
   existingProduct?: any;
@@ -40,11 +48,13 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
+  const [badgeLabel, setBadgeLabel] = useState('');
+
   // Imágenes
-  const [imageFile, setImageFile] = useState<File[]>([]);
-  const [imagePublicIds, setImagePublicIds] = useState<string[]>(
-    existingProduct?.image_public_ids || []
-  );
+  const [imageItems, setImageItems] = useState<ImageItem[]>([]);
+  const [deletedPublicIds, setDeletedPublicIds] = useState<string[]>([]);
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement | null>(null);
 
   const router = useRouter();
 
@@ -58,6 +68,7 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
     setPrice(existingProduct.price?.toString() ?? '');
     setIsPhysical(!!existingProduct.is_physical);
     setCategory(existingProduct.category ?? '');
+    setBadgeLabel(existingProduct.badge_label ?? '');
     setIsFeatured(!!existingProduct.is_featured);
 
     // Variantes (tolerante a {label,price} o {name,price})
@@ -87,9 +98,19 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
       if (first?.min != null) setBulkThresholdQty(String(first.min));
     }
 
-    // Public IDs si ya existían
-    if (Array.isArray(existingProduct.image_public_ids)) {
-      setImagePublicIds(existingProduct.image_public_ids);
+    // Imágenes existentes
+    if (Array.isArray(existingProduct.images)) {
+      const existingIds = Array.isArray(existingProduct.image_public_ids)
+        ? existingProduct.image_public_ids
+        : [];
+      setImageItems(
+        existingProduct.images.map((url: string, index: number) => ({
+          id: `existing-${index}-${url}`,
+          url,
+          publicId: existingIds[index] ?? undefined,
+          existing: true,
+        }))
+      );
     }
   }, [existingProduct]);
 
@@ -109,6 +130,67 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
     if (field === 'price') variant.price = Number(value);
     else if (field === 'name') variant.name = value;
     setVariantList(updated);
+  };
+
+  const addImageItems = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newItems = Array.from(files).map((file) => ({
+      id: `new-${file.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      url: URL.createObjectURL(file),
+      file,
+      existing: false,
+    }));
+    setImageItems((prev) => [...prev, ...newItems]);
+  };
+
+  const removeImageItem = (id: string) => {
+    setImageItems((prev) => {
+      const removed = prev.find((item) => item.id === id);
+      if (removed?.file) {
+        URL.revokeObjectURL(removed.url);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
+    const removed = imageItems.find((item) => item.id === id);
+    if (removed?.publicId) {
+      setDeletedPublicIds((prev) => [...prev, removed.publicId!]);
+    }
+  };
+
+  const moveImageItem = (index: number, direction: 'left' | 'right') => {
+    setImageItems((prev) => {
+      const nextIndex = direction === 'left' ? index - 1 : index + 1;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
+      return copy;
+    });
+  };
+
+  const handleReplaceFile = (file: File | null) => {
+    if (!file || !replaceTargetId) return;
+    setImageItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== replaceTargetId) return item;
+        if (item.file) {
+          URL.revokeObjectURL(item.url);
+        }
+        return {
+          ...item,
+          id: `new-${file.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          url: URL.createObjectURL(file),
+          file,
+          existing: false,
+          publicId: undefined,
+        };
+      })
+    );
+    setReplaceTargetId(null);
+  };
+
+  const triggerReplace = (id: string) => {
+    setReplaceTargetId(id);
+    replaceInputRef.current?.click();
   };
   const addVariant = () => setVariantList([...variantList, { name: '', price: 0 }]);
   const removeVariant = (index: number) => {
@@ -149,17 +231,31 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
     }
 
     // Subida de imágenes: guardamos URL + public_id
-    let imageUrls: string[] = existingProduct?.images || [];
-    let publicIds: string[] = existingProduct?.image_public_ids || [];
+    let imageUrls: string[] = [];
+    let publicIds: string[] = [];
 
     try {
-      for (const file of imageFile) {
-        // 👇 usamos el helper que habla con /api/upload-image
-        const uploaded = await uploadImageToCloudinary(file, "productos");
+      const newItems = imageItems.filter((item) => !item.existing && item.file);
+      const uploadedMap = new Map<string, { url: string; public_id: string }>();
 
-        imageUrls.push(uploaded.url);
-        publicIds.push(uploaded.public_id);
+      for (const item of newItems) {
+        const uploaded = await uploadImageToCloudinary(item.file!, "productos");
+        uploadedMap.set(item.id, uploaded);
       }
+
+      imageUrls = imageItems.map((item) =>
+        item.existing
+          ? item.url
+          : uploadedMap.get(item.id)?.url ?? item.url
+      );
+
+      publicIds = imageItems
+        .map((item) =>
+          item.existing
+            ? item.publicId
+            : uploadedMap.get(item.id)?.public_id
+        )
+        .filter((id): id is string => Boolean(id));
     } catch (err: any) {
       console.error("Error al subir imagen a Cloudinary:", err);
       alert(err?.message || "Error al subir imagen. Revisá la consola.");
@@ -174,13 +270,14 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
       price: Number(price),
       discount: null,                     // 👈 deprecado: no usar descuento general
       category,
-      variants: variantList,              // {name, price}
+      badge_label: badgeLabel.trim() || null,
+      variants: variantList,
       images: imageUrls,
-      image_public_ids: publicIds,        // 👈 NUEVO
+      image_public_ids: publicIds,
       is_physical: isPhysical,
-      bulk_discounts: null,               // legacy ya no se usa
+      bulk_discounts: null,
       bulk_threshold_qty: isPhysical ? thresholdNum : null,
-      bulk_discount_pct:  isPhysical ? bulkPctNum : null,
+      bulk_discount_pct: isPhysical ? bulkPctNum : null,
       is_featured: isFeatured,
     };
 
@@ -195,9 +292,26 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
         alert('No se pudo actualizar. Revisá la consola.');
         return;
       }
+
+      if (deletedPublicIds.length > 0) {
+        try {
+          const deleteRes = await fetch('/api/cloudinary/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ publicIds: deletedPublicIds }),
+          });
+          const deleteJson = await deleteRes.json();
+          if (!deleteRes.ok) {
+            console.warn('No se pudieron borrar algunas imágenes de Cloudinary:', deleteJson);
+          }
+        } catch (deleteErr) {
+          console.warn('Error al borrar imágenes en Cloudinary:', deleteErr);
+        }
+      }
+
       alert('Producto actualizado correctamente');
     } else {
-      if (!imageFile.length) return alert('Seleccioná al menos una imagen');
+      if (imageItems.length === 0) return alert('Seleccioná al menos una imagen');
 
       const { error: insertError } = await supabase.from('products').insert([productData]);
       if (insertError) {
@@ -207,9 +321,6 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
       }
       alert('Producto agregado correctamente');
     }
-
-    // Mantener estado coherente (opcional)
-    setImagePublicIds(publicIds);
 
     router.push('/admin');
   };
@@ -296,6 +407,15 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
 
       {/* Categoría */}
       <div>
+        <label className="block font-medium mb-1">Mensaje del badge (opcional)</label>
+        <input
+          type="text"
+          placeholder="Ej: 10% OFF comprando desde 20 u."
+          value={badgeLabel}
+          onChange={(e) => setBadgeLabel(e.target.value)}
+          className="w-full border p-2 rounded mb-3"
+        />
+
         <label className="block font-medium mb-1">Categoría</label>
         <select
           value={category}
@@ -341,6 +461,77 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
 
       {/* Variantes */}
       <div className="space-y-2">
+        <label className="block font-medium">Imágenes</label>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {imageItems.map((item, index) => (
+            <div key={item.id} className="border rounded-xl p-2 bg-white shadow-sm">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-50">
+                <img src={item.url} alt={`Imagen ${index + 1}`} className="object-cover w-full h-full" />
+              </div>
+              <div className="mt-2 space-y-2 text-xs text-gray-700">
+                <p className="font-medium">Orden {index + 1}</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => moveImageItem(index, 'left')}
+                    disabled={index === 0}
+                    className="rounded-full border px-2 py-1 text-[0.7rem] font-semibold disabled:opacity-50"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveImageItem(index, 'right')}
+                    disabled={index === imageItems.length - 1}
+                    className="rounded-full border px-2 py-1 text-[0.7rem] font-semibold disabled:opacity-50"
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => triggerReplace(item.id)}
+                    className="rounded-full border px-2 py-1 text-[0.7rem] font-semibold"
+                  >
+                    Reemplazar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeImageItem(item.id)}
+                    className="rounded-full border border-red-400 text-red-600 px-2 py-1 text-[0.7rem] font-semibold"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+                <p className="text-[0.7rem] text-gray-500">
+                  {item.existing ? 'Imagen cargada' : 'Imagen nueva'}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => addImageItems(e.target.files)}
+          className="w-full"
+        />
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          ref={replaceInputRef}
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            handleReplaceFile(file);
+            e.target.value = '';
+          }}
+        />
+      </div>
+
+      <div className="space-y-2">
         <label className="block font-medium">Variantes</label>
         {variantList.map((variant, index) => (
           <div key={index} className="flex gap-2 items-center">
@@ -377,7 +568,7 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
         type="file"
         accept="image/*"
         multiple
-        onChange={(e) => setImageFile(e.target.files ? Array.from(e.target.files) : [])}
+        onChange={(e) => addImageItems(e.target.files)}
         className="w-full"
       />
 
