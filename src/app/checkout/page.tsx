@@ -62,6 +62,7 @@ export default function CheckoutPage() {
     // 📦 Dirección / entrega (SIEMPRE)
     metodoEntrega: 'sucursal', // 'sucursal' | 'domicilio'
     provincia: '',
+    provinciaId: '',
     localidad: '',
     cp: '',
     calle: '',
@@ -73,6 +74,78 @@ export default function CheckoutPage() {
 
   const [loading, setLoading] = useState(false);
   const [envioPrecio, setEnvioPrecio] = useState<number | null>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [provincias, setProvincias] = useState<{ id: string; nombre: string }[]>([]);
+  const [localidadSuggestions, setLocalidadSuggestions] = useState<string[]>([]);
+  const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
+
+  const defaultProvincias = [
+    'Buenos Aires',
+    'Catamarca',
+    'Chaco',
+    'Chubut',
+    'Córdoba',
+    'Corrientes',
+    'Entre Ríos',
+    'Formosa',
+    'Jujuy',
+    'La Pampa',
+    'La Rioja',
+    'Mendoza',
+    'Misiones',
+    'Neuquén',
+    'Río Negro',
+    'Salta',
+    'San Juan',
+    'San Luis',
+    'Santa Cruz',
+    'Santa Fe',
+    'Santiago del Estero',
+    'Tierra del Fuego',
+    'Tucumán',
+    'Ciudad Autónoma de Buenos Aires',
+  ];
+
+  const localidadesSugeridas = [
+    'Buenos Aires',
+    'Córdoba',
+    'Rosario',
+    'Mendoza',
+    'La Plata',
+    'San Miguel de Tucumán',
+    'Mar del Plata',
+    'Salta',
+    'San Salvador de Jujuy',
+    'Neuquén',
+    'Resistencia',
+    'Posadas',
+    'Bahía Blanca',
+    'Corrientes',
+    'Santa Fe',
+    'San Juan',
+  ];
+  const provinciaOptions = provincias.length > 0 ? provincias.map((prov) => prov.nombre) : defaultProvincias;
+  const showLocalidadFallback = !formData.provinciaId;
+
+  const totalShippingWeight = useMemo(
+    () =>
+      cartItems.reduce(
+        (sum, item) => sum + (item.weight ?? 1000) * item.quantity,
+        0
+      ),
+    [cartItems]
+  );
+
+  const shippingDimensions = useMemo(
+    () => ({
+      weight: Math.max(1, totalShippingWeight),
+      height: 10,
+      width: 20,
+      length: 30,
+    }),
+    [totalShippingWeight]
+  );
 
   // 10% OFF transferencia (aplicado sobre el total del carrito SIN envío)
   const transferDiscountPct = 0.10;
@@ -92,13 +165,179 @@ export default function CheckoutPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+
+    if (name === 'provincia') {
+      const selected = provincias.find((prov) => prov.nombre === value);
+      setFormData((prev) => ({
+        ...prev,
+        provincia: value,
+        provinciaId: selected?.id ?? '',
+        localidad: '',
+      }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleLocalidadFocus = () => {
+    setShowLocalidadSuggestions(true);
+  };
+
+  const handleLocalidadBlur = () => {
+    window.setTimeout(() => setShowLocalidadSuggestions(false), 150);
+  };
+
+  const normalizeSearchText = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: 'Respuesta no válida (no es JSON)', raw: text };
+    }
+  };
+
   useEffect(() => {
-    // a futuro: cotizador Correo Argentino
-    setEnvioPrecio(null);
+    fetch('https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=100')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.provincias)) {
+          setProvincias(data.provincias);
+        }
+      })
+      .catch((error) => {
+        console.error('Error cargando provincias:', error);
+      });
   }, []);
+
+  useEffect(() => {
+    if (!contieneFisicos) {
+      setEnvioPrecio(null);
+      setShippingError(null);
+      return;
+    }
+
+    const cp = formData.cp.trim();
+    if (!cp || cp.length < 4) {
+      setEnvioPrecio(null);
+      setShippingError(null);
+      return;
+    }
+
+    let ignore = false;
+
+    const cotizarEnvio = async () => {
+      setShippingLoading(true);
+      setShippingError(null);
+
+      try {
+        const res = await fetch('/api/correo/rate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinationPostalCode: cp,
+            deliveryType: formData.metodoEntrega,
+            weight: shippingDimensions.weight,
+            height: shippingDimensions.height,
+            width: shippingDimensions.width,
+            length: shippingDimensions.length,
+          }),
+        });
+
+        const data = await safeJson(res);
+
+        if (!res.ok) {
+          throw new Error(data?.error || 'No se pudo obtener la cotización');
+        }
+
+        const ratesArray = Array.isArray(data?.rates) ? data.rates : [];
+        if (ratesArray.length === 0) {
+          throw new Error(
+            'No se encontró cotización para este destino con la cuenta de Correo Argentino configurada. Revisa el código postal y el customerId, o contacta a Correo para habilitar el servicio.'
+          );
+        }
+
+        const firstRate = ratesArray[0];
+        const rateValue =
+          firstRate?.amount ??
+          firstRate?.price ??
+          firstRate?.total ??
+          firstRate?.cost ??
+          null;
+
+        if (rateValue === null || Number.isNaN(Number(rateValue))) {
+          throw new Error('La respuesta de Correo Argentino no incluyó una tarifa válida');
+        }
+
+        if (!ignore) {
+          setEnvioPrecio(Number(rateValue));
+        }
+      } catch (error) {
+        if (!ignore) {
+          setEnvioPrecio(null);
+          setShippingError(
+            error instanceof Error ? error.message : 'No se pudo cotizar el envío'
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setShippingLoading(false);
+        }
+      }
+    };
+
+    cotizarEnvio();
+
+    return () => {
+      ignore = true;
+    };
+  }, [contieneFisicos, formData.cp, formData.metodoEntrega]);
+
+  useEffect(() => {
+    if (!formData.provinciaId) {
+      setLocalidadSuggestions([]);
+      return;
+    }
+
+    if (!showLocalidadSuggestions && formData.localidad.trim().length < 2) {
+      setLocalidadSuggestions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      try {
+        const rawQuery = formData.localidad.trim();
+        const query = normalizeSearchText(rawQuery);
+        const endpoint = query
+          ? `https://apis.datos.gob.ar/georef/api/localidades?provincia=${formData.provinciaId}&nombre=${encodeURIComponent(query)}&max=50`
+          : `https://apis.datos.gob.ar/georef/api/localidades?provincia=${formData.provinciaId}&max=50`;
+
+        const res = await fetch(endpoint, { signal: controller.signal });
+        const data = await res.json();
+        if (Array.isArray(data.localidades)) {
+          setLocalidadSuggestions(data.localidades.map((loc: any) => loc.nombre));
+        }
+      } catch (error) {
+        if ((error as any).name !== 'AbortError') {
+          console.error('Error cargando localidades:', error);
+        }
+      }
+    }, 150);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [formData.provinciaId, formData.localidad, showLocalidadSuggestions]);
 
   const buildResumenProductos = () =>
     cartItems
@@ -149,15 +388,6 @@ export default function CheckoutPage() {
       .join('\n');
   };
 
-  const safeJson = async (res: Response) => {
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { error: 'Respuesta no válida (no es JSON)', raw: text };
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -167,6 +397,23 @@ export default function CheckoutPage() {
     const resumenProductos = buildResumenProductos();
     const resumenEnvio = buildResumenEnvio();
     const direccionTexto = buildDireccionTexto();
+
+    const hasCoupon = Boolean(appliedCoupon && String(appliedCoupon).trim());
+    const hasDiscountAmount = Number(cartDiscountAmount || 0) > 0;
+    const bloqueDescuento = [
+      hasCoupon ? `💸 Cupón aplicado: ${appliedCoupon}` : null,
+      hasDiscountAmount ? `💰 Descuento aplicado: $${Number(cartDiscountAmount).toFixed(2)}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const bloqueEnvio = `📦 Costo de envío: ${
+      contieneFisicos
+        ? envioFinal > 0
+          ? `$${envioFinal.toFixed(2)}`
+          : 'a coordinar'
+        : 'No aplica (pedido digital)'
+    }`;
 
     // Desglose para guardar / resumen
     const templateParams = {
@@ -195,6 +442,20 @@ export default function CheckoutPage() {
       // envío y total
       envio: envioFinal.toFixed(2),
       total: totalFinal.toFixed(2),
+      costoEnvio: contieneFisicos ? (envioFinal > 0 ? `$${envioFinal.toFixed(2)}` : 'a coordinar') : 'No aplica (pedido digital)',
+      costoEnvioValor: envioFinal.toFixed(2),
+      detalleEnvio: contieneFisicos
+        ? `Costo de envío: ${envioFinal > 0 ? `$${envioFinal.toFixed(2)}` : 'a coordinar'}`
+        : 'Sin envío físico',
+      descuento: hasCoupon ? `Cupón ${appliedCoupon}` : '',
+      descuentoMonto: hasDiscountAmount ? `$${Number(cartDiscountAmount).toFixed(2)}` : '',
+      bloqueDescuento,
+      mostrarBloqueDescuento: hasCoupon || hasDiscountAmount,
+      bloqueEnvio,
+      shippingWeight: shippingDimensions.weight,
+      shippingHeight: shippingDimensions.height,
+      shippingWidth: shippingDimensions.width,
+      shippingLength: shippingDimensions.length,
     };
 
     try {
@@ -393,35 +654,90 @@ export default function CheckoutPage() {
         <div className="border-t pt-4 mt-4 space-y-2">
           <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Dirección / Entrega:</h3>
 
-          <select
-            name="metodoEntrega"
-            value={formData.metodoEntrega}
-            onChange={handleChange}
-            className="w-full border p-2 rounded-md"
-          >
-            <option value="sucursal">Retiro en sucursal (Correo Argentino)</option>
-            <option value="domicilio">Envío a domicilio</option>
-          </select>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Método de entrega
+              </label>
+              <select
+                name="metodoEntrega"
+                value={formData.metodoEntrega}
+                onChange={handleChange}
+                className="w-full border p-2 rounded-md"
+              >
+                <option value="sucursal">Retiro en sucursal (Correo Argentino)</option>
+                <option value="domicilio">Envío a domicilio</option>
+              </select>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
+            <select
               name="provincia"
               required
               value={formData.provincia}
               onChange={handleChange}
-              placeholder="Provincia"
               className="w-full border p-2 rounded-md"
-            />
-            <input
-              type="text"
-              name="localidad"
-              required
-              value={formData.localidad}
-              onChange={handleChange}
-              placeholder="Localidad / Ciudad"
-              className="w-full border p-2 rounded-md"
-            />
+            >
+              <option value="" disabled>
+                Seleccioná una provincia
+              </option>
+              {(provincias.length > 0 ? provincias.map((prov) => prov.nombre) : defaultProvincias).map(
+                (provincia) => (
+                  <option key={provincia} value={provincia}>
+                    {provincia}
+                  </option>
+                )
+              )}
+            </select>
+            <div className="relative">
+              <input
+                type="text"
+                name="localidad"
+                required
+                value={formData.localidad}
+                onFocus={handleLocalidadFocus}
+                onBlur={handleLocalidadBlur}
+                onChange={(event) => {
+                  handleChange(event);
+                  setShowLocalidadSuggestions(true);
+                }}
+                placeholder="Localidad / Ciudad"
+                list="localidades-list"
+                className="w-full border p-2 rounded-md"
+                autoComplete="off"
+              />
+              <datalist id="localidades-list">
+                {localidadSuggestions.length > 0
+                  ? localidadSuggestions.map((localidad) => (
+                      <option key={localidad} value={localidad} />
+                    ))
+                  : showLocalidadFallback
+                  ? localidadesSugeridas.map((localidad) => (
+                      <option key={localidad} value={localidad} />
+                    ))
+                  : null}
+              </datalist>
+              {showLocalidadSuggestions && localidadSuggestions.length > 0 && (
+                <ul className="absolute z-10 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-b-md shadow-lg">
+                  {localidadSuggestions.map((localidad) => (
+                    <li key={localidad}>
+                      <button
+                        type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          setFormData((prev) => ({ ...prev, localidad }));
+                          setShowLocalidadSuggestions(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                      >
+                        {localidad}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           <input
@@ -433,6 +749,22 @@ export default function CheckoutPage() {
             placeholder="Código Postal"
             className="w-full border p-2 rounded-md"
           />
+
+          {contieneFisicos && (
+            <div className="text-sm mt-1">
+              {shippingLoading ? (
+                <p className="text-gray-600">Cotizando envío...</p>
+              ) : shippingError ? (
+                <p className="text-red-600">{shippingError}</p>
+              ) : envioPrecio !== null ? (
+                <p className="text-green-700">Costo estimado de envío: ${envioPrecio.toFixed(2)}</p>
+              ) : (
+                <p className="text-gray-600">
+                  Ingresá el código postal para ver la cotización de Correo Argentino.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -485,6 +817,9 @@ export default function CheckoutPage() {
 
           <p className="text-xs text-gray-600">
             *Pedimos estos datos para coordinar la entrega y tener tu pedido completo.
+            {formData.provincia && !showLocalidadFallback && localidadSuggestions.length === 0
+              ? ' No se encontraron localidades para la provincia seleccionada. Verificá el nombre o probá con otra localidad.'
+              : ''}
           </p>
         </div>
 
