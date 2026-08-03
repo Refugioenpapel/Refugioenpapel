@@ -36,6 +36,7 @@ export default function AdminVentasPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
   const [resendingOrderId, setResendingOrderId] = useState<string | null>(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(null);
 
   const getAccessToken = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -149,6 +150,36 @@ export default function AdminVentasPage() {
     }
   };
 
+  const confirmPayment = async (orderId: string) => {
+    setConfirmingOrderId(orderId);
+    try {
+      const token = await getAccessToken();
+      const res = await fetch(`/api/admin/orders/${orderId}/confirm-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ orderId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          data?.detail || data?.error || 'No se pudo ejecutar la confirmación de pago'
+        );
+      }
+
+      await loadOrders();
+      alert('Confirmación de pago y envío manual ejecutada.');
+    } catch (error: any) {
+      console.error(error);
+      alert(`No se pudo confirmar el pago. ${error?.message || ''}`.trim());
+    } finally {
+      setConfirmingOrderId(null);
+    }
+  };
+
   if (loading) {
     return <p className="p-6">Verificando acceso...</p>;
   }
@@ -239,6 +270,14 @@ export default function AdminVentasPage() {
                       onClick={() => resendEmail(o.order_id)}
                     >
                       {resendingOrderId === o.order_id ? 'Enviando...' : 'Reenviar email'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={confirmingOrderId === o.order_id}
+                      className="border rounded px-2 py-1 text-xs hover:bg-gray-50"
+                      onClick={() => confirmPayment(o.order_id)}
+                    >
+                      {confirmingOrderId === o.order_id ? 'Procesando...' : 'Confirmar pago'}
                     </button>
                   </div>
                 </td>

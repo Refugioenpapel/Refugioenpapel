@@ -23,7 +23,7 @@ function parsePhone(raw?: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items, orderId, payer } = body;
+    const { items, orderId, payer, shipping } = body;
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
 
     const preference = new Preference(mpClient);
@@ -31,14 +31,28 @@ export async function POST(req: Request) {
 
     const email = payer?.email ? String(payer.email) : '';
 
+    const normalizedShippingCost = Number(shipping?.cost ?? 0);
+    const safeShippingCost = Number.isFinite(normalizedShippingCost) ? normalizedShippingCost : 0;
+
+    const preferenceItems = (items || []).map((item: any) => ({
+      title: String(item.title ?? ''),
+      quantity: Number(item.quantity ?? 1),
+      unit_price: Number(item.unit_price ?? 0),
+      currency_id: 'ARS',
+    }));
+
+    if (safeShippingCost > 0) {
+      preferenceItems.push({
+        title: shipping?.mode === 'domicilio' ? 'Envío a domicilio' : 'Envío a sucursal',
+        quantity: 1,
+        unit_price: safeShippingCost,
+        currency_id: 'ARS',
+      });
+    }
+
     const result = await preference.create({
       body: {
-        items: (items || []).map((item: any) => ({
-          title: String(item.title ?? ''),
-          quantity: Number(item.quantity ?? 1),
-          unit_price: Number(item.unit_price ?? 0),
-          currency_id: 'ARS',
-        })),
+        items: preferenceItems,
 
         payer: {
           name: payer?.name ? String(payer.name) : undefined,

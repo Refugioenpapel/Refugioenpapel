@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@lib/supabaseAdmin';
 import { sendOrderEmail } from '@lib/email/sendOrderEmail';
+import { importShippingForOrder } from '@lib/correoArgentino/shippingImportHelper';
 
 async function getPaymentInfo(paymentId: string) {
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     const supabaseAdmin = getSupabaseAdmin();
     const { data: orderRow, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('order_id,checkout_data,email_sent,payment_status')
+      .select('order_id,checkout_data,email_sent,payment_status,cart_items')
       .eq('order_id', orderId)
       .maybeSingle();
 
@@ -74,12 +75,37 @@ export async function POST(req: Request) {
     }
 
     const checkoutData = (orderRow.checkout_data || {}) as Record<string, unknown>;
-    await sendOrderEmail({
-      templateParams: {
-        ...checkoutData,
-        order_id: orderId,
-      },
-    });
+    const envioValue = Number((checkoutData as any)?.envio ?? 0);
+    const envioTexto = Number.isFinite(envioValue) && envioValue > 0 ? `$${envioValue.toFixed(2)}` : 'a coordinar';
+    const couponName = String((checkoutData as any)?.cupon || '').trim();
+    const descuentoValue = Number((checkoutData as any)?.descuentoCupon ?? 0);
+    const hasCoupon = Boolean(couponName);
+    const hasDiscountAmount = Number(descuentoValue || 0) > 0;
+    const bloqueDescuento = [
+      hasCoupon ? `💸 Cupón aplicado: ${couponName}` : null,
+      hasDiscountAmount ? `💰 Descuento aplicado: $${Number(descuentoValue).toFixed(2)}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      await sendOrderEmail({
+        templateParams: {
+          ...checkoutData,
+          order_id: orderId,
+          costoEnvio: envioTexto,
+          costoEnvioValor: Number.isFinite(envioValue) ? envioValue.toFixed(2) : '0.00',
+          detalleEnvio: `Costo de envío: ${envioTexto}`,
+          descuento: hasCoupon ? `Cupón ${couponName}` : '',
+          descuentoMonto: hasDiscountAmount ? `$${Number(descuentoValue).toFixed(2)}` : '',
+          bloqueDescuento,
+          mostrarBloqueDescuento: hasCoupon || hasDiscountAmount,
+          bloqueEnvio: `📦 Costo de envío: ${envioTexto}`,
+        },
+      });
+    } catch (emailError: any) {
+      console.warn('orders.confirm-payment email skipped:', emailError?.message || emailError);
+    }
 
     await supabaseAdmin
       .from('orders')
@@ -92,6 +118,17 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq('order_id', orderId);
+
+    try {
+      await importShippingForOrder({
+        orderId,
+        checkoutData: orderRow.checkout_data as Record<string, unknown> | null,
+        cartItems: Array.isArray(orderRow.cart_items) ? orderRow.cart_items : [],
+        supabaseAdmin,
+      });
+    } catch (importError: any) {
+      console.warn('orders.confirm-payment shipping import skipped:', importError?.message || importError);
+    }
 
     return NextResponse.json({ ok: true, sent: true });
   } catch (error: any) {

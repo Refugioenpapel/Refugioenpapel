@@ -2,8 +2,9 @@
 export async function getCorreoArgentinoToken() {
   const username = process.env.CORREO_USER!;
   const password = process.env.CORREO_PASS!;
+  const baseURL = process.env.CORREO_BASE_URL || 'https://api.correoargentino.com.ar/micorreo/v1';
 
-  const res = await fetch('https://api.correoargentino.com.ar/micorreo/v1/token', {
+  const res = await fetch(`${baseURL}/token`, {
     method: 'POST',
     headers: {
       Authorization: 'Basic ' + btoa(`${username}:${password}`),

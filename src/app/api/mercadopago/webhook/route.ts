@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@lib/supabaseAdmin';
 import { sendOrderEmail } from '@lib/email/sendOrderEmail';
+import { importShippingForOrder } from '@lib/correoArgentino/shippingImportHelper';
 
 function mapOrderStatus(paymentStatus: string) {
   if (paymentStatus === 'approved') return 'paid';
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
 
     const { data: orderRow, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('id, checkout_data, email_sent')
+      .select('id, checkout_data, email_sent, cart_items')
       .eq('order_id', orderId)
       .maybeSingle();
 
@@ -106,23 +107,38 @@ export async function POST(req: Request) {
     if (paymentStatus === 'approved' && !alreadySent && orderRow?.checkout_data) {
       const checkoutData = orderRow.checkout_data as Record<string, unknown>;
 
-      await sendOrderEmail({
-        templateParams: {
-          ...checkoutData,
-          order_id: orderId,
-        },
-      });
+      try {
+        await sendOrderEmail({
+          templateParams: {
+            ...checkoutData,
+            order_id: orderId,
+          },
+        });
 
-      console.log('MP webhook email sent', { orderId, paymentId });
+        console.log('MP webhook email sent', { orderId, paymentId });
 
-      await supabaseAdmin
-        .from('orders')
-        .update({
-          email_sent: true,
-          email_sent_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('order_id', orderId);
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            email_sent: true,
+            email_sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('order_id', orderId);
+      } catch (emailError: any) {
+        console.warn('MP webhook email skipped:', emailError?.message || emailError);
+      }
+
+      try {
+        await importShippingForOrder({
+          orderId,
+          checkoutData,
+          cartItems: Array.isArray(orderRow.cart_items) ? orderRow.cart_items : [],
+          supabaseAdmin,
+        });
+      } catch (importError: any) {
+        console.warn('MP webhook shipping import skipped:', importError?.message || importError);
+      }
     }
 
     return NextResponse.json({ ok: true });
@@ -135,6 +151,3 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  return NextResponse.json({ ok: true });
-}

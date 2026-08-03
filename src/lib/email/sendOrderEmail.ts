@@ -8,6 +8,10 @@ export async function sendOrderEmail({ templateParams }: SendOrderEmailParams) {
   const publicKey = process.env.EMAILJS_PUBLIC_KEY || 'cHz6pQf3uU5jTYI48';
   const privateKey = process.env.EMAILJS_PRIVATE_KEY;
 
+  if (!privateKey) {
+    throw new Error('Falta EMAILJS_PRIVATE_KEY');
+  }
+
   const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
     headers: {

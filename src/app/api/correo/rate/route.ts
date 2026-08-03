@@ -2,52 +2,89 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { destinationPostalCode, deliveryType, weight, height, width, length } = await req.json();
-
-    console.log('📦 Datos recibidos:', {
+    const {
       destinationPostalCode,
       deliveryType,
       weight,
       height,
       width,
       length,
-    });
+    } = await req.json();
 
-    // Obtener token con Basic Auth
-    const tokenRes = await fetch('https://api.correoargentino.com.ar/micorreo/v1/token', {
+    const username = process.env.CORREO_USER;
+    const password = process.env.CORREO_PASS;
+    const baseURL = process.env.CORREO_BASE_URL || 'https://api.correoargentino.com.ar/micorreo/v1';
+    const rawCustomerId = String(process.env.CORREO_CUSTOMER_ID ?? '1654651');
+    const customerId = rawCustomerId.padStart(10, '0');
+    const postalCodeOrigin = process.env.CORREO_POSTAL_CODE_ORIGIN ?? '1406';
+
+    const fallbackAmount = (() => {
+      const numericWeight = Number(weight || 1000);
+      const base = deliveryType === 'domicilio' ? 1800 : 1400;
+      const extra = Math.max(0, numericWeight - 1000) * 0.8;
+      return Number((base + extra).toFixed(2));
+    })();
+
+    if (!username || !password) {
+      return NextResponse.json({
+        status: 200,
+        customerId,
+        rates: [{ amount: fallbackAmount, source: 'fallback' }],
+        note: 'Cotización estimada por falta de credenciales de Correo Argentino',
+      });
+    }
+
+    if (!destinationPostalCode || !deliveryType || !weight || !height || !width || !length) {
+      return NextResponse.json({ error: 'Faltan parámetros obligatorios para la cotización' }, { status: 400 });
+    }
+
+    const tokenRes = await fetch(`${baseURL}/token`, {
       method: 'POST',
       headers: {
-        Authorization: 'Basic ' + Buffer.from(`${process.env.CORREO_USER}:${process.env.CORREO_PASS}`).toString('base64'),
+        Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64'),
       },
     });
 
-    if (!tokenRes.ok) {
-      const errorData = await tokenRes.json();
-      console.error('❌ Error al obtener token:', errorData);
-      return NextResponse.json({ error: 'No se pudo obtener el token' }, { status: 500 });
+    const tokenText = await tokenRes.text();
+    let tokenData: any = {};
+
+    try {
+      tokenData = JSON.parse(tokenText);
+    } catch {
+      tokenData = { raw: tokenText };
     }
 
-    const tokenData = await tokenRes.json();
-    console.log('🔐 Token recibido:', tokenData);
+    if (!tokenRes.ok) {
+      console.error('❌ Error al obtener token:', tokenData);
+      return NextResponse.json({
+        status: 200,
+        customerId,
+        rates: [{ amount: fallbackAmount, source: 'fallback' }],
+        note: 'Cotización estimada por error al obtener el token de Correo Argentino',
+        detalle: tokenData,
+      });
+    }
 
-    const token = tokenData.token;
+    const token = tokenData?.token;
 
-    // Consulta de tarifas
+    if (!token) {
+      return NextResponse.json({ error: 'No se recibió un token válido', detalle: tokenData }, { status: 500 });
+    }
+
     const payload = {
-      origenPostalCode: '1406', // Flores
-      destinoPostalCode: destinationPostalCode,
-      deliveryType,
-      package: {
-        weight,
-        height,
-        width,
-        length,
+      customerId,
+      postalCodeOrigin,
+      postalCodeDestination: destinationPostalCode,
+      deliveredType: deliveryType === 'domicilio' ? 'D' : 'S',
+      dimensions: {
+        weight: Number(weight),
+        height: Number(height),
+        width: Number(width),
+        length: Number(length),
       },
     };
 
-    console.log('📤 Enviando a /rates:', payload);
-
-    const rateRes = await fetch('https://api.correoargentino.com.ar/micorreo/v1/rates', {
+    const rateRes = await fetch(`${baseURL}/rates`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,14 +93,32 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
-    const rateData = await rateRes.json();
-    console.log('📥 Respuesta de /rates:', rateData);
+    const rateText = await rateRes.text();
+    let rateData: any = {};
 
-    if (!rateRes.ok) {
-      return NextResponse.json({ error: 'No se pudo obtener tarifas', detalle: rateData }, { status: 500 });
+    try {
+      rateData = JSON.parse(rateText);
+    } catch {
+      rateData = { raw: rateText };
     }
 
-    return NextResponse.json({ rates: rateData.rates || [] });
+    if (!rateRes.ok) {
+      return NextResponse.json({
+        status: 200,
+        customerId,
+        rates: [{ amount: fallbackAmount, source: 'fallback' }],
+        note: 'Cotización estimada por error al consultar tarifas de Correo Argentino',
+        detalle: rateData,
+      });
+    }
+
+    return NextResponse.json({
+      status: rateRes.status,
+      customerId,
+      payload,
+      rateData,
+      rates: Array.isArray(rateData?.rates) ? rateData.rates : [],
+    });
   } catch (error) {
     console.error('❌ Error inesperado al consultar tarifa de envío:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
