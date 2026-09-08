@@ -11,6 +11,7 @@ import {
 } from "react";
 import CartDrawer from "@components/CartDrawer";
 import { fetchCouponByCode } from "@lib/supabase/coupons"; // 👈 NUEVO
+import { applyProductDiscount, sanitizeDiscountPct } from "@lib/pricing";
 
 type BulkDiscount = {
   min: number;
@@ -25,6 +26,8 @@ type CartItem = {
 
   originalPrice: number;
   price: number;
+  product_discount_pct?: number | null;
+  promoPrice?: number | null;
 
   quantity: number;
   weight?: number;
@@ -116,7 +119,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const unitPrice = (item: CartItem, quantity?: number): number => {
     const qty = quantity ?? item.quantity;
-    const base = Number(item.originalPrice) || 0;
+    const base = Number(item.originalPrice ?? item.price) || 0;
+    const productDiscountPct = sanitizeDiscountPct(item.product_discount_pct);
+    const promoBase = applyProductDiscount(base, productDiscountPct);
 
     if (
       item.is_physical &&
@@ -128,8 +133,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const maxOk = bd.max == null || qty <= bd.max;
         return minOk && maxOk;
       });
-      if (match) return Number(match.price) || base;
-      return base;
+      if (match) return Number(match.price) || promoBase;
+      return promoBase;
     }
 
     if (item.is_physical && item.bulk_threshold_qty && item.bulk_discount_pct) {
@@ -138,12 +143,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
           Math.max(item.bulk_discount_pct, 0),
           100
         ) / 100;
-        const discounted = base * (1 - pct);
+        const discounted = promoBase * (1 - pct);
         return Number(discounted.toFixed(2));
       }
     }
 
-    return base;
+    return promoBase;
   };
 
   const priceLine = (item: CartItem): number => {
@@ -179,11 +184,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existing) {
         return prev.map((i) =>
           i.id === item.id
-            ? { ...i, quantity: newQuantity, price: effectiveUnit }
+            ? {
+                ...i,
+                originalPrice: Number(item.originalPrice ?? item.price ?? i.originalPrice ?? i.price) || 0,
+                product_discount_pct: item.product_discount_pct ?? null,
+                promoPrice: applyProductDiscount(item.originalPrice ?? item.price, item.product_discount_pct),
+                quantity: newQuantity,
+                price: effectiveUnit,
+              }
             : i
         );
       }
-      return [...prev, { ...item, price: effectiveUnit }];
+      return [
+        ...prev,
+        {
+          ...item,
+          originalPrice: Number(item.originalPrice ?? item.price) || 0,
+          price: effectiveUnit,
+          promoPrice: applyProductDiscount(item.originalPrice ?? item.price, item.product_discount_pct),
+        },
+      ];
     });
   };
 

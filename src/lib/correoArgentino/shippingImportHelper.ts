@@ -31,7 +31,7 @@ export async function importShippingForOrder(options: {
   }
 
   const correoShippingImport = (checkoutData as any).correoShippingImport;
-  if (correoShippingImport?.importedAt) {
+  if (correoShippingImport?.success === true && correoShippingImport?.importedAt) {
     return { imported: true, skipped: true, reason: 'already_imported', result: correoShippingImport };
   }
 
@@ -41,6 +41,9 @@ export async function importShippingForOrder(options: {
   const number = String((checkoutData as any).numero || '').trim();
   const locality = String((checkoutData as any).localidad || '').trim();
   const province = String((checkoutData as any).provincia || '').trim();
+  const selectedAgency = String(
+    (checkoutData as any).selectedBranchId || (checkoutData as any).selectedBranch?.id || ''
+  ).trim();
 
   if (!deliveryType || !postalCode || !street || !number || !locality || !province) {
     return {
@@ -48,6 +51,15 @@ export async function importShippingForOrder(options: {
       skipped: false,
       reason: 'missing_shipping_fields',
       detail: { deliveryType, postalCode, street, number, locality, province },
+    };
+  }
+
+  if (deliveryType !== 'domicilio' && !selectedAgency) {
+    return {
+      imported: false,
+      skipped: false,
+      reason: 'missing_pickup_agency',
+      detail: { deliveryType, selectedAgency },
     };
   }
 
@@ -87,17 +99,22 @@ export async function importShippingForOrder(options: {
     },
     items,
     notes: String((checkoutData as any).mensaje || '') || `Pedido ${orderId}`,
+    agency: selectedAgency || undefined,
   });
 
+  const now = new Date().toISOString();
   const nextCheckoutData = {
     ...checkoutData,
     correoShippingImport: {
-      importedAt: new Date().toISOString(),
+      attemptedAt: now,
+      importedAt: importResult.ok ? now : null,
+      success: importResult.ok,
       result: {
         ok: importResult.ok,
         status: importResult.status,
         error: importResult.error || null,
-        data: importResult.ok ? importResult.data : null,
+        data: importResult.data || null,
+        raw: importResult.ok ? null : importResult.raw || null,
       },
     },
   };

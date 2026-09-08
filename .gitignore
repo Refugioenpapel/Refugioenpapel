@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local/debug artifacts
+apiMiCorreo.pdf
+apiMiCorreo.txt
+extract_pdf_text.log
+extract_pdf_text.py
+pdf_extract.py
+pdf_snippet.py
+pdf_snippet_out.txt
+temp-*.js
+tmp-*.js
+tmp_*.html
+temp_*.py

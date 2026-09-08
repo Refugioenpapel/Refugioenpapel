@@ -40,7 +40,6 @@ export default function BuscarPage() {
               ? Math.min(...variants.map((v: { price: number }) => v.price))
               : product.price;
 
-            // No aplicamos descuento por ahora, solo mostramos el precio sin cambios
             const finalPrice = minVariantPrice;
 
             return (
@@ -80,6 +79,7 @@ export default function BuscarPage() {
                     <PriceBlock
                       className="mt-2"
                       price={finalPrice ?? null}
+                      discountPct={product.discount ?? 0}
                       prefix={!product.is_physical ? "🔥 Desde" : undefined}
                       priceClassName="text-base font-bold"
                       transferClassName="text-sm text-gray-500"
@@ -89,6 +89,7 @@ export default function BuscarPage() {
                     <PriceBlock
                       className="mt-2"
                       price={finalPrice ?? null}
+                      discountPct={product.discount ?? 0}
                       priceClassName="text-base font-bold text-pink-600"
                       transferClassName="text-sm text-gray-500"
                       align="center"

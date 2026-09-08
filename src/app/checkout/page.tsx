@@ -1,10 +1,12 @@
 // app/checkout/page.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import emailjs from 'emailjs-com';
 import { useCart } from '@context/CartContext';
+import type { CorreoSucursalOption } from '@lib/correoArgentino/branchLookup';
+import { applyProductDiscount, extractCorreoRateAmount } from '@lib/pricing';
 
 type PaymentMethod = 'mp' | 'transfer';
 
@@ -35,13 +37,37 @@ export default function CheckoutPage() {
     [cartItems]
   );
 
+  const descuentoPromocionProductos = useMemo(
+    () =>
+      Math.max(
+        0,
+        cartItems.reduce((acc, it) => {
+          const promoUnit = applyProductDiscount(it.originalPrice, it.product_discount_pct);
+          return acc + (it.originalPrice - promoUnit) * it.quantity;
+        }, 0)
+      ),
+    [cartItems]
+  );
+
+  const descuentoPorCantidad = useMemo(
+    () =>
+      Math.max(
+        0,
+        cartItems.reduce((acc, it) => {
+          const promoUnit = applyProductDiscount(it.originalPrice, it.product_discount_pct);
+          return acc + (promoUnit * it.quantity - priceLine(it));
+        }, 0)
+      ),
+    [cartItems, priceLine]
+  );
+
   const descuentoAutomatico = useMemo(
     () =>
       Math.max(
         0,
-        cartItems.reduce((acc, it) => acc + (it.originalPrice * it.quantity - priceLine(it)), 0)
+        descuentoPromocionProductos + descuentoPorCantidad
       ),
-    [cartItems, priceLine]
+    [descuentoPromocionProductos, descuentoPorCantidad]
   );
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mp');
@@ -73,12 +99,19 @@ export default function CheckoutPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [envioPrecio, setEnvioPrecio] = useState<number | null>(null);
+  const [shippingRates, setShippingRates] = useState<{
+    domicilio: number | null;
+    sucursal: number | null;
+  }>({ domicilio: null, sucursal: null });
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingError, setShippingError] = useState<string | null>(null);
+  const [branchOptions, setBranchOptions] = useState<CorreoSucursalOption[]>([]);
+  const [branchFallback, setBranchFallback] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const [provincias, setProvincias] = useState<{ id: string; nombre: string }[]>([]);
   const [localidadSuggestions, setLocalidadSuggestions] = useState<string[]>([]);
   const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
+  const localidadSuggestionsCache = useRef<Record<string, string[]>>({});
 
   const defaultProvincias = [
     'Buenos Aires',
@@ -127,6 +160,12 @@ export default function CheckoutPage() {
   ];
   const provinciaOptions = provincias.length > 0 ? provincias.map((prov) => prov.nombre) : defaultProvincias;
   const showLocalidadFallback = !formData.provinciaId;
+  const visibleLocalidadSuggestions =
+    localidadSuggestions.length > 0
+      ? localidadSuggestions
+      : showLocalidadFallback
+      ? localidadesSugeridas
+      : [];
 
   const totalShippingWeight = useMemo(
     () =>
@@ -154,7 +193,17 @@ export default function CheckoutPage() {
     return Math.max(0, cartTotal * transferDiscountPct);
   }, [paymentMethod, cartTotal]);
 
+  const envioPrecio =
+    formData.metodoEntrega === 'domicilio'
+      ? shippingRates.domicilio
+      : shippingRates.sucursal;
+
   const envioFinal = envioPrecio || 0;
+
+  const selectedBranch = useMemo(
+    () => branchOptions.find((branch) => branch.id === selectedBranchId) || null,
+    [branchOptions, selectedBranchId]
+  );
 
   const totalFinal = useMemo(() => {
     const base = cartTotal - transferenciaDescuentoMonto;
@@ -168,6 +217,7 @@ export default function CheckoutPage() {
 
     if (name === 'provincia') {
       const selected = provincias.find((prov) => prov.nombre === value);
+      setSelectedBranchId('');
       setFormData((prev) => ({
         ...prev,
         provincia: value,
@@ -175,6 +225,16 @@ export default function CheckoutPage() {
         localidad: '',
       }));
       return;
+    }
+
+    if (name === 'metodoEntrega') {
+      if (value === 'domicilio') setSelectedBranchId('');
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    if (name === 'localidad' || name === 'cp') {
+      setSelectedBranchId('');
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -220,31 +280,71 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!contieneFisicos) {
-      setEnvioPrecio(null);
+      setShippingRates({ domicilio: null, sucursal: null });
       setShippingError(null);
       return;
     }
 
-    const cp = formData.cp.trim();
-    if (!cp || cp.length < 4) {
-      setEnvioPrecio(null);
+    const postalCode = formData.cp.trim();
+    if (!postalCode || postalCode.length < 4) {
+      setShippingRates({ domicilio: null, sucursal: null });
       setShippingError(null);
       return;
     }
 
     let ignore = false;
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch('/api/correo/agencies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cp: postalCode,
+            provincia: formData.provincia,
+            localidad: formData.localidad,
+          }),
+        });
+        const data = await res.json();
+        if (!ignore) {
+          if (Array.isArray(data.agencies)) {
+            setBranchOptions(data.agencies);
+            setBranchFallback(data.fallback !== false);
+          } else {
+            setBranchOptions([]);
+            setBranchFallback(true);
+          }
+        }
+      } catch (error) {
+        if (!ignore) {
+          setBranchOptions([]);
+          setBranchFallback(true);
+        }
+      }
+    };
+
+    fetchBranches();
 
     const cotizarEnvio = async () => {
       setShippingLoading(true);
       setShippingError(null);
+      setShippingRates({ domicilio: null, sucursal: null });
 
-      try {
+      const safeJson = async (res: Response) => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { error: 'Respuesta no válida', raw: text };
+        }
+      };
+
+      const getRateFor = async (deliveryType: 'domicilio' | 'sucursal') => {
         const res = await fetch('/api/correo/rate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            destinationPostalCode: cp,
-            deliveryType: formData.metodoEntrega,
+            destinationPostalCode: postalCode,
+            deliveryType,
             weight: shippingDimensions.weight,
             height: shippingDimensions.height,
             width: shippingDimensions.width,
@@ -253,38 +353,57 @@ export default function CheckoutPage() {
         });
 
         const data = await safeJson(res);
-
         if (!res.ok) {
           throw new Error(data?.error || 'No se pudo obtener la cotización');
         }
 
-        const ratesArray = Array.isArray(data?.rates) ? data.rates : [];
-        if (ratesArray.length === 0) {
-          throw new Error(
-            'No se encontró cotización para este destino con la cuenta de Correo Argentino configurada. Revisa el código postal y el customerId, o contacta a Correo para habilitar el servicio.'
-          );
-        }
-
-        const firstRate = ratesArray[0];
-        const rateValue =
-          firstRate?.amount ??
-          firstRate?.price ??
-          firstRate?.total ??
-          firstRate?.cost ??
-          null;
+        const rateValue = extractCorreoRateAmount(data);
 
         if (rateValue === null || Number.isNaN(Number(rateValue))) {
           throw new Error('La respuesta de Correo Argentino no incluyó una tarifa válida');
         }
 
+        return rateValue;
+      };
+
+      try {
+        const deliveryTypes: Array<'domicilio' | 'sucursal'> = [
+          'domicilio',
+          'sucursal',
+        ];
+
+        const results = await Promise.allSettled(
+          deliveryTypes.map((deliveryType) => getRateFor(deliveryType))
+        );
+
+        const nextRates: { domicilio: number | null; sucursal: number | null } = {
+          domicilio: null,
+          sucursal: null,
+        };
+        let anySuccess = false;
+
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            nextRates[deliveryTypes[index]] = result.value;
+            anySuccess = true;
+          }
+        });
+
         if (!ignore) {
-          setEnvioPrecio(Number(rateValue));
+          setShippingRates(nextRates);
+          if (!anySuccess) {
+            setShippingError(
+              'No se pudo obtener la cotización para este CP. Revisá los datos e intentá nuevamente.'
+            );
+          }
         }
       } catch (error) {
         if (!ignore) {
-          setEnvioPrecio(null);
+          setShippingRates({ domicilio: null, sucursal: null });
           setShippingError(
-            error instanceof Error ? error.message : 'No se pudo cotizar el envío'
+            error instanceof Error
+              ? error.message
+              : 'No se pudo cotizar el envío'
           );
         }
       } finally {
@@ -299,7 +418,7 @@ export default function CheckoutPage() {
     return () => {
       ignore = true;
     };
-  }, [contieneFisicos, formData.cp, formData.metodoEntrega]);
+  }, [contieneFisicos, formData.cp, formData.provincia, formData.localidad, shippingDimensions]);
 
   useEffect(() => {
     if (!formData.provinciaId) {
@@ -307,31 +426,46 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!showLocalidadSuggestions && formData.localidad.trim().length < 2) {
+    const rawQuery = formData.localidad.trim();
+    const query = normalizeSearchText(rawQuery);
+
+    if (!showLocalidadSuggestions || query.length < 2) {
       setLocalidadSuggestions([]);
+      return;
+    }
+
+    const cacheKey = `${formData.provinciaId}:${query}`;
+    const cachedSuggestions = localidadSuggestionsCache.current[cacheKey];
+    if (cachedSuggestions) {
+      setLocalidadSuggestions(cachedSuggestions);
       return;
     }
 
     const controller = new AbortController();
     const timeout = setTimeout(async () => {
       try {
-        const rawQuery = formData.localidad.trim();
-        const query = normalizeSearchText(rawQuery);
-        const endpoint = query
-          ? `https://apis.datos.gob.ar/georef/api/localidades?provincia=${formData.provinciaId}&nombre=${encodeURIComponent(query)}&max=50`
-          : `https://apis.datos.gob.ar/georef/api/localidades?provincia=${formData.provinciaId}&max=50`;
+        const endpoint = `https://apis.datos.gob.ar/georef/api/localidades?provincia=${formData.provinciaId}&nombre=${encodeURIComponent(query)}&campos=nombre&orden=nombre&max=20`;
 
         const res = await fetch(endpoint, { signal: controller.signal });
         const data = await res.json();
         if (Array.isArray(data.localidades)) {
-          setLocalidadSuggestions(data.localidades.map((loc: any) => loc.nombre));
+          const suggestions: string[] = Array.from(
+            new Set<string>(
+              data.localidades
+                .map((loc: any) => String(loc?.nombre || '').trim())
+                .filter(Boolean)
+            )
+          ).slice(0, 12);
+
+          localidadSuggestionsCache.current[cacheKey] = suggestions;
+          setLocalidadSuggestions(suggestions);
         }
       } catch (error) {
         if ((error as any).name !== 'AbortError') {
           console.error('Error cargando localidades:', error);
         }
       }
-    }, 150);
+    }, 120);
 
     return () => {
       controller.abort();
@@ -353,9 +487,13 @@ export default function CheckoutPage() {
     // ✅ Aunque el pedido sea digital, igual pedimos dirección.
     // Mantengo tu texto para cuando hay físicos; si no hay físicos, lo dejamos claro.
     if (!contieneFisicos) return 'Pedido digital (sin envío físico) — se registró dirección igualmente';
-    return formData.metodoEntrega === 'domicilio'
-      ? 'Envío a domicilio por Correo Argentino (a coordinar)'
-      : 'Envío a sucursal de Correo Argentino (a coordinar)';
+    if (formData.metodoEntrega === 'domicilio') {
+      return 'Envío a domicilio por Correo Argentino';
+    }
+
+    return selectedBranch
+      ? `Retiro en sucursal Correo Argentino: ${selectedBranch.title} (${selectedBranch.address} - ${selectedBranch.locality}, ${selectedBranch.province})`
+      : 'Retiro en sucursal de Correo Argentino (pendiente de selección)';
   };
 
   // ✅ Bloque “bonito” para pegar en el email con 1 variable
@@ -380,6 +518,9 @@ export default function CheckoutPage() {
 
     return [
       `Método de entrega: ${formData.metodoEntrega === 'domicilio' ? 'Domicilio' : 'Sucursal'}`,
+      selectedBranch
+        ? `Sucursal elegida: ${selectedBranch.title} (${selectedBranch.id}) - ${selectedBranch.address}, ${selectedBranch.locality}, ${selectedBranch.province}${selectedBranch.postalCode ? ` CP ${selectedBranch.postalCode}` : ''}`
+        : null,
       `Dirección: ${linea1}`,
       linea2 ? `Info: ${linea2}` : null,
       `Localidad/Provincia: ${linea3}`,
@@ -391,6 +532,12 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+
+    if (contieneFisicos && formData.metodoEntrega === 'sucursal' && !selectedBranch) {
+      alert('Elegí una sucursal de Correo Argentino para retirar tu pedido.');
+      setLoading(false);
+      return;
+    }
 
     const numeroPedido = Math.floor(1000 + Math.random() * 9000);
 
@@ -427,6 +574,8 @@ export default function CheckoutPage() {
 
       // desglose
       subtotalOriginal: subtotalOriginal.toFixed(2),
+      descuentoPromocionProductos: descuentoPromocionProductos.toFixed(2),
+      descuentoPorCantidad: descuentoPorCantidad.toFixed(2),
       descuentoAutomatico: descuentoAutomatico.toFixed(2),
       subtotalConAuto: cartSubtotal.toFixed(2),
       cupon: appliedCoupon || '',
@@ -456,6 +605,13 @@ export default function CheckoutPage() {
       shippingHeight: shippingDimensions.height,
       shippingWidth: shippingDimensions.width,
       shippingLength: shippingDimensions.length,
+      selectedBranch: selectedBranch || null,
+      selectedBranchId: selectedBranch?.id || '',
+      selectedBranchTitle: selectedBranch?.title || '',
+      selectedBranchAddress: selectedBranch?.address || '',
+      selectedBranchLocality: selectedBranch?.locality || '',
+      selectedBranchProvince: selectedBranch?.province || '',
+      selectedBranchPostalCode: selectedBranch?.postalCode || '',
     };
 
     try {
@@ -654,24 +810,71 @@ export default function CheckoutPage() {
         <div className="border-t pt-4 mt-4 space-y-2">
           <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Dirección / Entrega:</h3>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Método de entrega
-              </label>
-              <select
-                name="metodoEntrega"
-                value={formData.metodoEntrega}
-                onChange={handleChange}
-                className="w-full border p-2 rounded-md"
+          {contieneFisicos && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label
+                className={`relative flex cursor-pointer gap-3 rounded-2xl border p-4 transition ${
+                  formData.metodoEntrega === 'domicilio'
+                    ? 'border-[#A084CA] bg-[#F7F2FA] shadow-sm'
+                    : 'border-[#E5D2ED] bg-white hover:bg-[#FAF8FF]'
+                }`}
               >
-                <option value="sucursal">Retiro en sucursal (Correo Argentino)</option>
-                <option value="domicilio">Envío a domicilio</option>
-              </select>
-            </div>
-          </div>
+                <input
+                  type="radio"
+                  name="metodoEntrega"
+                  value="domicilio"
+                  checked={formData.metodoEntrega === 'domicilio'}
+                  onChange={handleChange}
+                  className="mt-1 accent-[#A084CA]"
+                />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-gray-800">Envío a domicilio</p>
+                    <p className="font-bold text-[#A084CA]">
+                      {shippingRates.domicilio !== null
+                        ? `$${shippingRates.domicilio.toFixed(2)}`
+                        : 'a coordinar'}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Recibí tu pedido en la dirección que cargues abajo.
+                  </p>
+                </div>
+              </label>
 
-          <div className="grid grid-cols-2 gap-2">
+              <label
+                className={`relative flex cursor-pointer gap-3 rounded-2xl border p-4 transition ${
+                  formData.metodoEntrega === 'sucursal'
+                    ? 'border-[#A084CA] bg-[#F7F2FA] shadow-sm'
+                    : 'border-[#E5D2ED] bg-white hover:bg-[#FAF8FF]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="metodoEntrega"
+                  value="sucursal"
+                  checked={formData.metodoEntrega === 'sucursal'}
+                  onChange={handleChange}
+                  className="mt-1 accent-[#A084CA]"
+                />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-gray-800">Retiro en sucursal</p>
+                    <p className="font-bold text-[#A084CA]">
+                      {shippingRates.sucursal !== null
+                        ? `$${shippingRates.sucursal.toFixed(2)}`
+                        : 'a coordinar'}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Elegí una sucursal de Correo Argentino cercana a tu localidad.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <select
               name="provincia"
               required
@@ -703,33 +906,22 @@ export default function CheckoutPage() {
                   setShowLocalidadSuggestions(true);
                 }}
                 placeholder="Localidad / Ciudad"
-                list="localidades-list"
                 className="w-full border p-2 rounded-md"
                 autoComplete="off"
               />
-              <datalist id="localidades-list">
-                {localidadSuggestions.length > 0
-                  ? localidadSuggestions.map((localidad) => (
-                      <option key={localidad} value={localidad} />
-                    ))
-                  : showLocalidadFallback
-                  ? localidadesSugeridas.map((localidad) => (
-                      <option key={localidad} value={localidad} />
-                    ))
-                  : null}
-              </datalist>
-              {showLocalidadSuggestions && localidadSuggestions.length > 0 && (
-                <ul className="absolute z-10 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-b-md shadow-lg">
-                  {localidadSuggestions.map((localidad) => (
+              {showLocalidadSuggestions && visibleLocalidadSuggestions.length > 0 && (
+                <ul className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto rounded-xl border border-[#E5D2ED] bg-white py-1 text-sm shadow-xl">
+                  {visibleLocalidadSuggestions.map((localidad) => (
                     <li key={localidad}>
                       <button
                         type="button"
                         onMouseDown={(event) => {
                           event.preventDefault();
+                          setSelectedBranchId('');
                           setFormData((prev) => ({ ...prev, localidad }));
                           setShowLocalidadSuggestions(false);
                         }}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-100"
+                        className="w-full px-3 py-2 text-left text-gray-700 transition hover:bg-[#F7F2FA] hover:text-[#A084CA]"
                       >
                         {localidad}
                       </button>
@@ -751,13 +943,80 @@ export default function CheckoutPage() {
           />
 
           {contieneFisicos && (
-            <div className="text-sm mt-1">
+            <div className="mt-4 rounded-3xl border border-[#E5D2ED] bg-white p-4 text-sm text-gray-700">
+              <h4 className="font-semibold text-[#A084CA] mb-3">Cotización de Correo Argentino</h4>
               {shippingLoading ? (
                 <p className="text-gray-600">Cotizando envío...</p>
               ) : shippingError ? (
                 <p className="text-red-600">{shippingError}</p>
-              ) : envioPrecio !== null ? (
-                <p className="text-green-700">Costo estimado de envío: ${envioPrecio.toFixed(2)}</p>
+              ) : formData.cp.trim().length >= 4 ? (
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-[#E5D2ED] bg-[#F7F2FA] p-3">
+                    <div className="flex justify-between gap-3">
+                      <span>
+                        {formData.metodoEntrega === 'domicilio'
+                          ? 'Envío a domicilio seleccionado'
+                          : 'Retiro en sucursal seleccionado'}
+                      </span>
+                      <span className="font-semibold text-[#A084CA]">
+                        {envioPrecio !== null ? `$${envioPrecio.toFixed(2)}` : 'a coordinar'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-600">
+                      {formData.metodoEntrega === 'domicilio'
+                        ? 'El envío se despacha a la dirección ingresada.'
+                        : 'Seleccioná abajo la sucursal donde querés retirar.'}
+                    </p>
+                  </div>
+
+                  {formData.metodoEntrega === 'sucursal' && branchOptions.length > 0 ? (
+                    <div>
+                      <p className="font-medium text-sm text-[#A084CA] mb-2">
+                        Elegí una sucursal de retiro
+                      </p>
+                      <div className="space-y-2">
+                        {branchOptions.map((branch) => (
+                          <label
+                            key={branch.id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${
+                              selectedBranchId === branch.id
+                                ? 'border-[#A084CA] bg-[#F7F2FA]'
+                                : 'border-[#E5D2ED] bg-[#FAF8FF] hover:bg-white'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="selectedBranch"
+                              value={branch.id}
+                              checked={selectedBranchId === branch.id}
+                              onChange={() => setSelectedBranchId(branch.id)}
+                              required={formData.metodoEntrega === 'sucursal'}
+                              className="mt-1 accent-[#A084CA]"
+                            />
+                            <div>
+                              <p className="font-medium">{branch.title}</p>
+                              <p className="text-sm text-gray-600">{branch.address}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {branch.locality}, {branch.province}
+                                {branch.postalCode ? ` · CP ${branch.postalCode}` : ''}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ) : formData.metodoEntrega === 'sucursal' ? (
+                    <p className="text-sm text-gray-600">
+                      {branchFallback
+                        ? 'No encontramos sucursales confiables para la provincia/localidad/CP ingresados. Revisá los datos o elegí envío a domicilio.'
+                        : 'Las sucursales se ofrecen según la provincia, localidad y código postal ingresados.'}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      Si preferís retirar, cambiá a “Retiro en sucursal” y elegí una opción disponible.
+                    </p>
+                  )}
+                </div>
               ) : (
                 <p className="text-gray-600">
                   Ingresá el código postal para ver la cotización de Correo Argentino.
@@ -881,9 +1140,18 @@ export default function CheckoutPage() {
           </p>
 
           {descuentoAutomatico > 0 && (
-            <p className="text-[#A084CA]">
-              Descuento automático: <span className="font-medium">-${descuentoAutomatico.toFixed(2)}</span>
-            </p>
+            <>
+              {descuentoPromocionProductos > 0 && (
+                <p className="text-pink-600">
+                  Promoción productos: <span className="font-medium">-${descuentoPromocionProductos.toFixed(2)}</span>
+                </p>
+              )}
+              {descuentoPorCantidad > 0 && (
+                <p className="text-[#A084CA]">
+                  Descuento por cantidad: <span className="font-medium">-${descuentoPorCantidad.toFixed(2)}</span>
+                </p>
+              )}
+            </>
           )}
 
           <p>

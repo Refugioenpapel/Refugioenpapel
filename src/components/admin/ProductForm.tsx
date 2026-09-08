@@ -27,6 +27,7 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [discountPct, setDiscountPct] = useState('');
 
   // Flags
   const [isPhysical, setIsPhysical] = useState(false);
@@ -66,6 +67,7 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
     setSlug(existingProduct.slug ?? '');
     setDescription(existingProduct.description ?? '');
     setPrice(existingProduct.price?.toString() ?? '');
+    setDiscountPct(existingProduct.discount != null ? String(existingProduct.discount) : '');
     setIsPhysical(!!existingProduct.is_physical);
     setCategory(existingProduct.category ?? '');
     setBadgeLabel(existingProduct.badge_label ?? '');
@@ -218,6 +220,12 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
     // Validaciones nuevo esquema
     const thresholdNum = bulkThresholdQty === '' ? null : Number(bulkThresholdQty);
     const bulkPctNum = bulkDiscountPct === '' ? null : Number(bulkDiscountPct);
+    const promoPctNum = discountPct === '' ? null : Number(discountPct);
+
+    if (promoPctNum != null && (isNaN(promoPctNum) || promoPctNum < 0 || promoPctNum > 95)) {
+      alert('El descuento promocional del producto debe estar entre 0 y 95%.');
+      return;
+    }
 
     if (isPhysical && (thresholdNum != null || bulkPctNum != null)) {
       if (thresholdNum == null || isNaN(thresholdNum) || thresholdNum < 2) {
@@ -262,13 +270,13 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
       return;
     }
 
-    // Payload para BD (descuento general deprecado -> siempre null)
+    // Payload para BD
     const productData: any = {
       name,
       slug,
       description,
       price: Number(price),
-      discount: null,                     // 👈 deprecado: no usar descuento general
+      discount: promoPctNum && promoPctNum > 0 ? promoPctNum : null,
       category,
       badge_label: badgeLabel.trim() || null,
       variants: variantList,
@@ -363,6 +371,23 @@ export default function ProductForm({ existingProduct }: ProductFormProps) {
         className="w-full border p-2 rounded"
         required
       />
+
+      <div className="rounded-xl border border-pink-100 bg-pink-50/50 p-3 space-y-2">
+        <label className="block font-medium text-gray-800">Promoción del producto (%)</label>
+        <input
+          type="number"
+          min={0}
+          max={95}
+          step="0.01"
+          placeholder="Ej: 10 para mostrar 10% OFF"
+          value={discountPct}
+          onChange={(e) => setDiscountPct(e.target.value)}
+          className="w-full border p-2 rounded"
+        />
+        <p className="text-sm text-gray-600">
+          Es un descuento individual del producto. Se aplica primero, antes de cupones y antes del descuento por cantidad.
+        </p>
+      </div>
 
       <label className="flex items-center gap-2">
         <input

@@ -55,6 +55,14 @@ export default function ResumenPage() {
     ? parseFloat(checkoutInfo.descuentoAutomatico)
     : 0;
 
+  const descuentoPromocionProductos = checkoutInfo?.descuentoPromocionProductos
+    ? parseFloat(checkoutInfo.descuentoPromocionProductos)
+    : 0;
+
+  const descuentoPorCantidad = checkoutInfo?.descuentoPorCantidad
+    ? parseFloat(checkoutInfo.descuentoPorCantidad)
+    : Math.max(0, descuentoAutomatico - descuentoPromocionProductos);
+
   const subtotalConAuto = checkoutInfo?.subtotalConAuto
     ? parseFloat(checkoutInfo.subtotalConAuto)
     : Math.max(0, subtotalOriginal - descuentoAutomatico);
@@ -174,9 +182,18 @@ export default function ResumenPage() {
               Subtotal original: <strong>${subtotalOriginal.toFixed(2)}</strong>
             </p>
             {descuentoAutomatico > 0 && (
-              <p className="text-[#A084CA]">
-                Descuento automatico: <strong>-${descuentoAutomatico.toFixed(2)}</strong>
-              </p>
+              <>
+                {descuentoPromocionProductos > 0 && (
+                  <p className="text-pink-600">
+                    Promoción productos: <strong>-${descuentoPromocionProductos.toFixed(2)}</strong>
+                  </p>
+                )}
+                {descuentoPorCantidad > 0 && (
+                  <p className="text-[#A084CA]">
+                    Descuento por cantidad: <strong>-${descuentoPorCantidad.toFixed(2)}</strong>
+                  </p>
+                )}
+              </>
             )}
             <p>
               Subtotal: <strong>${subtotalConAuto.toFixed(2)}</strong>

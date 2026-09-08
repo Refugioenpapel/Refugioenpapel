@@ -10,6 +10,8 @@ import {
   GENERIC_DIGITAL_DESCRIPTION,
 } from '@data/sharedDescriptions';
 import PriceBlock from '@components/ui/PriceBlock';
+import type { CorreoSucursalOption } from '@lib/correoArgentino/branchLookup';
+import { applyProductDiscount, extractCorreoRateAmount, sanitizeDiscountPct } from '@lib/pricing';
 
 type Variant = { label: string; price: number };
 
@@ -29,6 +31,16 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     getDefaultVariant(product)
   );
   const [quantity, setQuantity] = useState(1);
+  const [cp, setCp] = useState('');
+  const [shippingRates, setShippingRates] = useState<{
+    domicilio: number | null;
+    sucursal: number | null;
+  }>({ domicilio: null, sucursal: null });
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [branchOptions, setBranchOptions] = useState<CorreoSucursalOption[]>([]);
+  const [branchFallback, setBranchFallback] = useState(false);
+
   const { addToCart, openCart } = useCart();
 
   const longDescriptionHTML = product.is_physical
@@ -60,17 +72,185 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     return `Llevando ${product.bulk_threshold_qty} unidades o más ${product.bulk_discount_pct}%OFF.`;
   }, [hasBulkNew, product.bulk_threshold_qty, product.bulk_discount_pct]);
 
+  const shippingDimensions = useMemo(
+    () => ({
+      weight: Math.max(1, Number((product as any).weight) || 1000),
+      height: 10,
+      width: 20,
+      length: 30,
+    }),
+    [product]
+  );
+
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: 'Respuesta no válida', raw: text };
+    }
+  };
+
+  const getRateFor = async (deliveryType: 'domicilio' | 'sucursal') => {
+    const res = await fetch('/api/correo/rate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        destinationPostalCode: cp,
+        deliveryType,
+        weight: shippingDimensions.weight,
+        height: shippingDimensions.height,
+        width: shippingDimensions.width,
+        length: shippingDimensions.length,
+      }),
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.error || 'No se pudo obtener la cotización');
+    }
+
+    const rateValue = extractCorreoRateAmount(data);
+
+    if (rateValue === null || Number.isNaN(Number(rateValue))) {
+      throw new Error('La respuesta de Correo Argentino no incluyó una tarifa válida');
+    }
+
+    return rateValue;
+  };
+
+  useEffect(() => {
+    const postalCode = cp.trim();
+    if (postalCode.length < 4) {
+      setBranchOptions([]);
+      setBranchFallback(false);
+      return;
+    }
+
+    let ignore = false;
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch('/api/correo/agencies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cp: postalCode }),
+        });
+
+        const data = await res.json();
+        if (!ignore) {
+          if (Array.isArray(data.agencies)) {
+            setBranchOptions(data.agencies);
+            setBranchFallback(data.fallback !== false);
+          } else {
+            setBranchOptions([]);
+            setBranchFallback(true);
+          }
+        }
+      } catch (error) {
+        if (!ignore) {
+          setBranchOptions([]);
+          setBranchFallback(true);
+        }
+      }
+    };
+
+    fetchBranches();
+    return () => {
+      ignore = true;
+    };
+  }, [cp]);
+
+  useEffect(() => {
+    if (!product.is_physical) {
+      setShippingRates({ domicilio: null, sucursal: null });
+      setShippingError(null);
+      return;
+    }
+
+    const postalCode = cp.trim();
+    if (!postalCode || postalCode.length < 4) {
+      setShippingRates({ domicilio: null, sucursal: null });
+      setShippingError(null);
+      return;
+    }
+
+    let ignore = false;
+    const fetchRates = async () => {
+      setShippingLoading(true);
+      setShippingError(null);
+      setShippingRates({ domicilio: null, sucursal: null });
+
+      try {
+        const deliveryTypes: Array<'domicilio' | 'sucursal'> = [
+          'domicilio',
+          'sucursal',
+        ];
+
+        const results = await Promise.allSettled(
+          deliveryTypes.map((deliveryType) => getRateFor(deliveryType))
+        );
+
+        const nextRates: { domicilio: number | null; sucursal: number | null } = {
+          domicilio: null,
+          sucursal: null,
+        };
+        let anySuccess = false;
+
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            nextRates[deliveryTypes[index]] = result.value;
+            anySuccess = true;
+          }
+        });
+
+        if (!ignore) {
+          setShippingRates(nextRates);
+          if (!anySuccess) {
+            setShippingError(
+              'No se pudo obtener la cotización. Verificá el código postal e intentá nuevamente.'
+            );
+          }
+        }
+      } catch (error) {
+        if (!ignore) {
+          setShippingRates({ domicilio: null, sucursal: null });
+          setShippingError(
+            error instanceof Error
+              ? error.message
+              : 'No se pudo calcular el envío'
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setShippingLoading(false);
+        }
+      }
+    };
+
+    fetchRates();
+
+    return () => {
+      ignore = true;
+    };
+  }, [cp, product.is_physical, shippingDimensions]);
+
   const handleAddToCart = () => {
     const unitPrice = Number(selectedVariant.price || 0);
+    const productDiscountPct = sanitizeDiscountPct(product.discount);
+    const promoPrice = applyProductDiscount(unitPrice, productDiscountPct);
 
     addToCart({
       id: `${product.id}-${selectedVariant.label}`,
       name: product.name,
       variantLabel: selectedVariant.label,
       originalPrice: unitPrice,
-      price: unitPrice,
+      price: promoPrice,
+      product_discount_pct: productDiscountPct > 0 ? productDiscountPct : null,
+      promoPrice,
       quantity,
       image: firstImage,
+      weight: Number((product as any).weight) || 1000,
       is_physical: product.is_physical,
       bulk_threshold_qty: product.bulk_threshold_qty ?? null,
       bulk_discount_pct: product.bulk_discount_pct ?? null,
@@ -122,9 +302,17 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           <PriceBlock
             className="mb-2"
             price={Number(selectedVariant.price || 0)}
+            discountPct={product.discount ?? 0}
             priceClassName="text-lg font-bold text-gray-800"
+            compareClassName="text-gray-400 line-through text-sm"
             transferClassName="text-sm text-gray-600"
           />
+
+          {sanitizeDiscountPct(product.discount) > 0 && (
+            <p className="mb-3 inline-flex rounded-full bg-pink-100 px-3 py-1 text-sm font-semibold text-pink-700">
+              {sanitizeDiscountPct(product.discount)}% OFF
+            </p>
+          )}
 
           {/* Hint de descuento por cantidad */}
           {hasBulkNew && (
@@ -187,6 +375,96 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           >
             Agregar al carrito
           </button>
+
+          {product.is_physical ? (
+            <div className="mt-6 rounded-3xl border border-[#E5D2ED] bg-[#FEF7FF] p-4 text-sm text-gray-700">
+              <h2 className="text-lg font-semibold text-[#A084CA] mb-2">
+                Ver costo de envío
+              </h2>
+              <p className="mb-3">
+                Ingresá tu código postal para ver el costo de envío a domicilio
+                y la opción de retiro en sucursal.
+              </p>
+
+              <div className="space-y-3 mb-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Código Postal
+                </label>
+                <input
+                  type="text"
+                  value={cp}
+                  onChange={(e) => setCp(e.target.value)}
+                  placeholder="Código Postal"
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base font-medium"
+                />
+                <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-600">
+                  {shippingLoading ? (
+                    'Cotizando envío...'
+                  ) : shippingError ? (
+                    <span className="text-red-600">{shippingError}</span>
+                  ) : cp.trim().length < 4 ? (
+                    'Ingresá al menos 4 dígitos de código postal.'
+                  ) : (
+                    'Costo de envío según el código postal ingresado.'
+                  )}
+                </div>
+              </div>
+
+              {cp.trim().length >= 4 && (
+                <div className="grid gap-2">
+                  <div className="rounded-2xl border border-[#E5D2ED] bg-white p-3 flex items-center justify-between">
+                    <span>Envío a domicilio</span>
+                    <span className="font-semibold text-[#A084CA]">
+                      {shippingRates.domicilio !== null
+                        ? `$${shippingRates.domicilio.toFixed(2)}`
+                        : 'a coordinar'}
+                    </span>
+                  </div>
+                  <div className="rounded-2xl border border-[#E5D2ED] bg-white p-3 flex items-center justify-between">
+                    <span>Retiro en sucursal</span>
+                    <span className="font-semibold text-[#A084CA]">
+                      {shippingRates.sucursal !== null
+                        ? `$${shippingRates.sucursal.toFixed(2)}`
+                        : 'a coordinar'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {cp.trim().length >= 4 && (
+                branchOptions.length > 0 ? (
+                  <div className="mt-4">
+                    <h3 className="font-semibold text-sm text-[#A084CA] mb-2">
+                      Sucursales sugeridas para este CP
+                    </h3>
+                    <ul className="space-y-2">
+                      {branchOptions.map((branch) => (
+                        <li
+                          key={branch.id}
+                          className="rounded-2xl border border-[#E5D2ED] bg-white p-3"
+                        >
+                          <p className="font-medium">{branch.title}</p>
+                          <p className="text-sm text-gray-600">{branch.address}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {branch.locality}, {branch.province}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : branchFallback ? (
+                  <p className="mt-4 rounded-2xl border border-[#E5D2ED] bg-white p-3 text-sm text-gray-600">
+                    No encontramos una sucursal de retiro confiable solo con este CP. En el checkout, completando provincia y localidad, podremos sugerir mejor la sucursal o coordinarla antes del despacho.
+                  </p>
+                ) : null
+              )}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-3xl border border-[#E5D2ED] bg-[#F9FAFB] p-4 text-sm text-gray-700">
+              Este producto no requiere envío físico.
+            </div>
+          )}
+
  {/* Elimina Tiempo en Souvenirs
           {product.category === 'souvenirs' && (
             <p className="mt-4 text-sm text-gray-600 italic">

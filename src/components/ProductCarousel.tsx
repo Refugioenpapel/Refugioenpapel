@@ -115,7 +115,9 @@ export default function ProductCarousel({
                     <PriceBlock
                       className="mt-3"
                       price={p.price}
+                      discountPct={p.discount ?? 0}
                       priceClassName="text-lg font-bold text-[#A084CA]"
+                      compareClassName="text-gray-400 line-through text-sm"
                       transferClassName="text-sm text-gray-500"
                       align="center"
                     />

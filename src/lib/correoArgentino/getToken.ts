@@ -4,10 +4,12 @@ export async function getCorreoArgentinoToken() {
   const password = process.env.CORREO_PASS!;
   const baseURL = process.env.CORREO_BASE_URL || 'https://api.correoargentino.com.ar/micorreo/v1';
 
+  const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+
   const res = await fetch(`${baseURL}/token`, {
     method: 'POST',
     headers: {
-      Authorization: 'Basic ' + btoa(`${username}:${password}`),
+      Authorization: authHeader,
     },
   });
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { extractCorreoRateAmount } from '@lib/pricing';
 
 export async function POST(req: NextRequest) {
   try {
@@ -112,12 +113,23 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const rates = Array.isArray(rateData?.rates)
+      ? rateData.rates
+      : Array.isArray(rateData)
+      ? rateData
+      : [];
+    const classicRate =
+      rates.find((rate: any) => String(rate?.productType || '').toUpperCase() === 'CP') || rates[0] || null;
+    const classicAmount = extractCorreoRateAmount({ amount: null, selectedRate: classicRate, rates });
+
     return NextResponse.json({
       status: rateRes.status,
       customerId,
       payload,
       rateData,
-      rates: Array.isArray(rateData?.rates) ? rateData.rates : [],
+      rates,
+      amount: classicAmount,
+      selectedRate: classicRate,
     });
   } catch (error) {
     console.error('❌ Error inesperado al consultar tarifa de envío:', error);

@@ -9,6 +9,8 @@ type Product = {
   id: number;
   name: string;
   slug: string;
+  price?: number | null;
+  discount?: number | null;
   images: string[] | null;            // URLs legacy
   image_public_ids?: string[] | null; // NUEVO (si ya existe en BD)
 };
@@ -27,7 +29,7 @@ export default function ProductList() {
     setLoading(true);
     const { data, error } = await supabase
       .from('products')
-      .select('id,name,slug,images,image_public_ids')
+      .select('id,name,slug,price,discount,images,image_public_ids')
       .order('id', { ascending: false });
 
     if (error) {
@@ -141,6 +143,14 @@ export default function ProductList() {
                 <div>
                   <p className="font-bold">{product.name}</p>
                   <p className="text-sm text-gray-500">{product.slug}</p>
+                  <p className="text-sm text-gray-600">
+                    Precio: ${Number(product.price ?? 0).toFixed(2)}
+                    {product.discount ? (
+                      <span className="ml-2 rounded-full bg-pink-100 px-2 py-0.5 text-xs font-semibold text-pink-700">
+                        {product.discount}% OFF
+                      </span>
+                    ) : null}
+                  </p>
                 </div>
                 <div className="flex gap-4">
                   <button

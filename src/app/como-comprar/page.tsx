@@ -33,55 +33,47 @@ export default function ComoComprarPage() {
       >
         <section>
           <h2 className="text-xl font-bold text-[#A56ABF] mb-2">
-            1. 🛍️ Elegí tus productos
+            1. Elegí tus productos 🛒
           </h2>
           <p>
             Explorá las categorías y agregá al carrito todo lo que necesites.
-            El descuento en souvenirs se aplica automáticamente al sumar la
-            cantidad correspondiente.
           </p>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-[#A56ABF] mb-2">
-            2. 🎨 Personalizá tu pedido
+            2. Completá la personalización ✏️
           </h2>
           <p>
-            Durante la compra vas vas a poder ingresar los datos de nombre y temática.
-            Después nos contactamos por WhatsApp para coordinar los detalles y enviarte
-            la vista previa digital.
+            Ingresá los datos solicitados para cada producto.
           </p>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-[#A56ABF] mb-2">
-            3. 💰 Pagá la seña o el total
+            3. Realizá el pago 💳
           </h2>
           <p>
-            Podés abonar el 100% o una seña del 50%. Enviá el comprobante por WhatsApp
-            al <strong>11 2409-8439</strong>.  
-            El resto se abona cuando el pedido está finalizado.
+            Podés pagar por transferencia bancaria o Mercado Pago. Si elegís transferencia, enviá el comprobante por WhatsApp al <strong>11 2409-8439</strong> para confirmar tu pedido.
           </p>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-[#A56ABF] mb-2">
-            4. 🚚 Envíos
+            4. Aprobá la muestra digital 👀
           </h2>
           <p>
-            Realizamos envíos a todo el país, a domicilio o a la sucursal de Correo Argentino
-            más cercana.  
+            Te enviaremos la muestra digital por WhatsApp. Una vez aprobada, comenzaremos la producción.
             <br />
-            <em>(No contamos con punto de retiro).</em>
           </p>
         </section>
 
         <section>
           <h2 className="text-xl font-bold text-[#A56ABF] mb-2">
-            5. ✨ Recibí tu pedido y disfrutá tu evento
+            5. Recibí tu pedido 📦
           </h2>
           <p>
-            Todo llega listo para entregar o colocar directamente en tu mesa.
+            Podés recibirlo en tu domicilio o retirarlo en una sucursal de Correo Argentino.
           </p>
         </section>
       </div>

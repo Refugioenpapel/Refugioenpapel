@@ -9,6 +9,7 @@ export interface Product {
 
   // precios
   price?: number;
+  /** Porcentaje de promoción individual del producto. Se aplica antes de cupones y descuentos por cantidad. */
   discount?: number | null;
   original_price?: number;
 

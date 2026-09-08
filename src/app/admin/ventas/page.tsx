@@ -18,6 +18,7 @@ type OrderRow = {
   email_sent_at: string | null;
   created_at: string;
   updated_at: string;
+  checkout_data?: any;
 };
 
 const RECOVERY_STATUSES = [
@@ -28,6 +29,18 @@ const RECOVERY_STATUSES = [
   'recovered_manual',
   'cancelled',
 ];
+
+function getCorreoImportLabel(order: OrderRow) {
+  const correoImport = order.checkout_data?.correoShippingImport;
+  if (!correoImport) return { text: 'Pendiente/no intentado', className: 'text-gray-500' };
+  if (correoImport.success === true || correoImport.result?.ok === true) {
+    return { text: 'Importado OK', className: 'text-green-700 font-semibold' };
+  }
+  if (correoImport.result?.error) {
+    return { text: `Error: ${correoImport.result.error}`, className: 'text-red-700' };
+  }
+  return { text: 'Intentado sin confirmar', className: 'text-amber-700' };
+}
 
 export default function AdminVentasPage() {
   const { isAdmin, loading } = useAdminAccess();
@@ -171,7 +184,17 @@ export default function AdminVentasPage() {
       }
 
       await loadOrders();
-      alert('Confirmación de pago y envío manual ejecutada.');
+      const shippingImport = data?.shippingImport;
+      if (shippingImport?.imported) {
+        alert('Pago confirmado. Correo Argentino aceptó la importación del envío.');
+      } else if (shippingImport?.skipped) {
+        alert(`Pago confirmado. Importación a Correo omitida: ${shippingImport.reason || 'sin detalle'}.`);
+      } else if (shippingImport) {
+        const detail = shippingImport?.result?.error || shippingImport?.error || shippingImport?.reason || 'sin detalle';
+        alert(`Pago confirmado, pero Correo Argentino no importó el envío: ${detail}`);
+      } else {
+        alert('Pago confirmado. No hubo resultado de importación a Correo Argentino.');
+      }
     } catch (error: any) {
       console.error(error);
       alert(`No se pudo confirmar el pago. ${error?.message || ''}`.trim());
@@ -226,12 +249,15 @@ export default function AdminVentasPage() {
               <th className="text-left p-2">Email</th>
               <th className="text-right p-2">Total</th>
               <th className="text-left p-2">Email enviado</th>
+              <th className="text-left p-2">Correo Argentino</th>
               <th className="text-left p-2">Fecha</th>
               <th className="text-left p-2">Accion</th>
             </tr>
           </thead>
           <tbody>
-            {orders.map((o) => (
+            {orders.map((o) => {
+              const correoImportLabel = getCorreoImportLabel(o);
+              return (
               <tr key={o.order_id} className="border-t">
                 <td className="p-2">#{o.order_id}</td>
                 <td className="p-2">{o.status}</td>
@@ -247,6 +273,9 @@ export default function AdminVentasPage() {
                 </td>
                 <td className="p-2">
                   {o.email_sent ? `si${o.email_sent_at ? ` (${new Date(o.email_sent_at).toLocaleString('es-AR')})` : ''}` : 'no'}
+                </td>
+                <td className={`p-2 max-w-xs text-xs ${correoImportLabel.className}`} title={correoImportLabel.text}>
+                  {correoImportLabel.text}
                 </td>
                 <td className="p-2">{new Date(o.created_at).toLocaleString('es-AR')}</td>
                 <td className="p-2">
@@ -282,10 +311,11 @@ export default function AdminVentasPage() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {orders.length === 0 && (
               <tr>
-                <td className="p-4 text-center text-gray-500" colSpan={10}>
+                <td className="p-4 text-center text-gray-500" colSpan={11}>
                   No hay ventas para este filtro.
                 </td>
               </tr>

@@ -5,7 +5,8 @@ import { useCart } from '@context/CartContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { applyProductDiscount, extractCorreoRateAmount, sanitizeDiscountPct } from '@lib/pricing';
 
 const currency = (n: number) => `$${n.toFixed(2)}`;
 
@@ -29,6 +30,161 @@ const CartDrawer = () => {
   } = useCart();
 
   const [coupon, setCoupon] = useState('');
+  const [cp, setCp] = useState('');
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [shippingRates, setShippingRates] = useState<{
+    domicilio: number | null;
+    sucursal: number | null;
+  }>({ domicilio: null, sucursal: null });
+
+  useEffect(() => {
+    try {
+      const storedCp = localStorage.getItem('cartShippingCp');
+      if (storedCp) setCp(storedCp);
+    } catch (error) {
+      console.warn('No se pudo leer CP del localStorage:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cartShippingCp', cp);
+    } catch (error) {
+      console.warn('No se pudo guardar CP en localStorage:', error);
+    }
+  }, [cp]);
+
+  const contieneFisicos = useMemo(
+    () => cartItems.some((item) => item.is_physical),
+    [cartItems]
+  );
+
+  const shippingDimensions = useMemo(
+    () => ({
+      weight: Math.max(
+        1,
+        cartItems.reduce((sum, item) => sum + (item.weight ?? 1000) * item.quantity, 0)
+      ),
+      height: 10,
+      width: 20,
+      length: 30,
+    }),
+    [cartItems]
+  );
+
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: 'Respuesta no válida', raw: text };
+    }
+  };
+
+  const getRateFor = async (deliveryType: 'domicilio' | 'sucursal') => {
+    const res = await fetch('/api/correo/rate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        destinationPostalCode: cp,
+        deliveryType,
+        weight: shippingDimensions.weight,
+        height: shippingDimensions.height,
+        width: shippingDimensions.width,
+        length: shippingDimensions.length,
+      }),
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.error || 'No se pudo obtener la cotización');
+    }
+
+    const rateValue = extractCorreoRateAmount(data);
+
+    if (rateValue === null || Number.isNaN(Number(rateValue))) {
+      throw new Error('La respuesta de Correo Argentino no incluyó una tarifa válida');
+    }
+
+    return rateValue;
+  };
+
+  useEffect(() => {
+    if (!contieneFisicos) {
+      setShippingRates({ domicilio: null, sucursal: null });
+      setShippingError(null);
+      return;
+    }
+
+    const postalCode = cp.trim();
+    if (postalCode.length < 4) {
+      setShippingRates({ domicilio: null, sucursal: null });
+      setShippingError(null);
+      return;
+    }
+
+    let ignore = false;
+
+    const fetchRates = async () => {
+      setShippingLoading(true);
+      setShippingError(null);
+      setShippingRates({ domicilio: null, sucursal: null });
+
+      try {
+        const deliveryTypes: Array<'domicilio' | 'sucursal'> = [
+          'domicilio',
+          'sucursal',
+        ];
+
+        const results = await Promise.allSettled(
+          deliveryTypes.map((deliveryType) => getRateFor(deliveryType))
+        );
+
+        const nextRates: { domicilio: number | null; sucursal: number | null } = {
+          domicilio: null,
+          sucursal: null,
+        };
+        let anySuccess = false;
+
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            nextRates[deliveryTypes[index]] = result.value;
+            anySuccess = true;
+          }
+        });
+
+        if (!ignore) {
+          setShippingRates(nextRates);
+          if (!anySuccess) {
+            setShippingError(
+              'No se pudo obtener la cotización para este CP. Revisá los datos e intentá nuevamente.'
+            );
+          }
+        }
+      } catch (error) {
+        if (!ignore) {
+          setShippingRates({ domicilio: null, sucursal: null });
+          setShippingError(
+            error instanceof Error
+              ? error.message
+              : 'No se pudo cotizar el envío'
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setShippingLoading(false);
+        }
+      }
+    };
+
+    fetchRates();
+
+    return () => {
+      ignore = true;
+    };
+  }, [contieneFisicos, cp, shippingDimensions]);
 
   return (
     <AnimatePresence>
@@ -47,7 +203,8 @@ const CartDrawer = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.3 }}
-            className="fixed top-0 right-0 w-80 h-full bg-white z-50 shadow-lg p-6 flex flex-col"
+            className="fixed top-0 right-0 w-80 max-w-[90vw] h-dvh max-h-dvh bg-white z-50 shadow-lg p-6 flex flex-col overflow-y-auto overflow-x-hidden touch-pan-y"
+            style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
           >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-[#A084CA]">Tu carrito</h2>
@@ -56,19 +213,28 @@ const CartDrawer = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-4">
+            <div
+              className="space-y-4"
+            >
               {cartItems.length === 0 ? (
                 <p className="text-gray-500">Tu carrito está vacío.</p>
               ) : (
                 cartItems.map((item) => {
                   const uPrice = unitPrice(item, item.quantity); // precio unitario efectivo (con bulk si aplica)
                   const lineTotal = priceLine(item);              // subtotal de línea
-                  const originalLine = item.originalPrice * item.quantity;
+                  const originalUnit = Number(item.originalPrice ?? item.price) || 0;
+                  const originalLine = originalUnit * item.quantity;
+                  const productDiscountPct = sanitizeDiscountPct(item.product_discount_pct);
+                  const promoUnit = applyProductDiscount(originalUnit, productDiscountPct);
+                  const promoLine = promoUnit * item.quantity;
+                  const promoDiff = Math.max(0, originalLine - promoLine);
+                  const bulkDiff = Math.max(0, promoLine - lineTotal);
                   const autoDiff = Math.max(0, originalLine - lineTotal);
 
                   const bulkActive =
                     item.is_physical &&
-                    uPrice < item.originalPrice;
+                    uPrice < promoUnit;
+                  const promoActive = productDiscountPct > 0 && promoUnit < originalUnit;
 
                   return (
                     <div key={item.id} className="border-b pb-2">
@@ -89,10 +255,10 @@ const CartDrawer = () => {
                             <div className="flex items-center gap-2">
                               <span>
                                 Unit.:{' '}
-                                {bulkActive ? (
+                                {promoActive || bulkActive ? (
                                   <>
                                     <span className="line-through opacity-60">
-                                      {currency(item.originalPrice)}
+                                      {currency(originalUnit)}
                                     </span>{' '}
                                     <span className="text-[#A084CA] font-semibold">
                                       {currency(uPrice)}
@@ -104,6 +270,11 @@ const CartDrawer = () => {
                                   </span>
                                 )}
                               </span>
+                              {promoActive && (
+                                <span className="rounded bg-pink-100 text-pink-700 px-2 py-0.5">
+                                  {productDiscountPct}% OFF
+                                </span>
+                              )}
                               {bulkActive && (
                                 <span className="rounded bg-[#EFE7FF] text-[#7D5BBE] px-2 py-0.5">
                                   descuento x cantidad
@@ -117,7 +288,8 @@ const CartDrawer = () => {
                             <p>Subtotal original: {currency(originalLine)}</p>
                             {autoDiff > 0 ? (
                               <>
-                                <p>Descuento automático: -{currency(autoDiff)}</p>
+                                {promoDiff > 0 && <p>Promoción producto: -{currency(promoDiff)}</p>}
+                                {bulkDiff > 0 && <p>Descuento por cantidad: -{currency(bulkDiff)}</p>}
                                 <p className="text-[#A084CA] font-medium">
                                   Subtotal con descuento: {currency(lineTotal)}
                                 </p>
@@ -167,18 +339,39 @@ const CartDrawer = () => {
               <div className="flex justify-between">
                 <span>Subtotal original:</span>
                 <span>{currency(
-                  cartItems.reduce((acc, it) => acc + it.originalPrice * it.quantity, 0)
+                  cartItems.reduce((acc, it) => acc + (Number(it.originalPrice ?? it.price) || 0) * it.quantity, 0)
                 )}</span>
               </div>
 
               {cartItems.length > 0 && (
-                <div className="flex justify-between text-[#A084CA]">
-                  <span>Descuento automático:</span>
+                <div className="flex justify-between text-pink-600">
+                  <span>Promociones de productos:</span>
                   <span>
                     -{currency(
                       Math.max(
                         0,
-                        cartItems.reduce((acc, it) => acc + (it.originalPrice * it.quantity - priceLine(it)), 0)
+                        cartItems.reduce((acc, it) => {
+                          const originalUnit = Number(it.originalPrice ?? it.price) || 0;
+                          const promoUnit = applyProductDiscount(originalUnit, it.product_discount_pct);
+                          return acc + (originalUnit - promoUnit) * it.quantity;
+                        }, 0)
+                      )
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {cartItems.length > 0 && (
+                <div className="flex justify-between text-[#A084CA]">
+                  <span>Descuento por cantidad:</span>
+                  <span>
+                    -{currency(
+                      Math.max(
+                        0,
+                        cartItems.reduce((acc, it) => {
+                          const promoUnit = applyProductDiscount(it.originalPrice ?? it.price, it.product_discount_pct);
+                          return acc + (promoUnit * it.quantity - priceLine(it));
+                        }, 0)
                       )
                     )}
                   </span>
@@ -196,6 +389,62 @@ const CartDrawer = () => {
                 <span className="text-gray-700">Subtotal:</span>
                 <span>{currency(cartSubtotal)}</span>
               </div>
+
+              {contieneFisicos && (
+                <div className="mt-4 rounded-3xl border border-[#E5D2ED] bg-white p-4 text-sm text-gray-700">
+                  <h4 className="font-semibold text-[#A084CA] mb-3">Costo de envío</h4>
+                  <div className="space-y-3 mb-3 max-w-xs">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Código Postal
+                    </label>
+                    <input
+                      type="text"
+                      value={cp}
+                      onChange={(e) => setCp(e.target.value)}
+                      placeholder="Código Postal"
+                      className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base font-medium"
+                    />
+                    <div className="rounded-xl border border-gray-200 bg-[#F9FAFB] p-3 text-sm text-gray-600">
+                      {shippingLoading ? (
+                        'Cotizando envío...'
+                      ) : shippingError ? (
+                        <span className="text-red-600">{shippingError}</span>
+                      ) : cp.trim().length < 4 ? (
+                        'Ingresá al menos 4 dígitos de código postal.'
+                      ) : (
+                        'Costo de envío según el código postal ingresado.'
+                      )}
+                    </div>
+                  </div>
+
+                  {cp.trim().length >= 4 && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between rounded-2xl border border-[#E5D2ED] bg-[#F7F2FA] p-3">
+                        <span>Envío a domicilio</span>
+                        <span className="font-semibold text-[#A084CA]">
+                          {shippingRates.domicilio !== null
+                            ? currency(shippingRates.domicilio)
+                            : 'a coordinar'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between rounded-2xl border border-[#E5D2ED] bg-[#F7F2FA] p-3">
+                        <span>Retiro en sucursal</span>
+                        <span className="font-semibold text-[#A084CA]">
+                          {shippingRates.sucursal !== null
+                            ? currency(shippingRates.sucursal)
+                            : 'a coordinar'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {cp.trim().length >= 4 && (
+                    <p className="mt-3 text-xs text-gray-600">
+                      La sucursal exacta se confirma en el checkout con provincia y localidad.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="flex justify-between text-base font-bold text-[#A084CA] border-t pt-2 mt-2">
                 <span>Total a pagar:</span>

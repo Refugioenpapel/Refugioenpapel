@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@lib/supabaseAdmin';
+import { requireAdmin } from '@lib/adminAuth';
 import { sendOrderEmail } from '@lib/email/sendOrderEmail';
 import { importShippingForOrder } from '@lib/correoArgentino/shippingImportHelper';
 
@@ -24,6 +25,12 @@ async function getPaymentInfo(paymentId: string) {
 }
 
 export async function POST(req: Request) {
+  const adminCheck = await requireAdmin(req);
+  if (!adminCheck.ok) {
+    const status = adminCheck.reason === 'forbidden' ? 403 : 401;
+    return NextResponse.json({ error: adminCheck.reason }, { status });
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const orderId = String(body?.orderId || '').trim();
@@ -37,7 +44,7 @@ export async function POST(req: Request) {
     const supabaseAdmin = getSupabaseAdmin();
     const { data: orderRow, error: orderError } = await supabaseAdmin
       .from('orders')
-      .select('order_id,checkout_data,email_sent,email_sent_at,payment_status,cart_items')
+      .select('order_id, checkout_data, email_sent, cart_items')
       .eq('order_id', orderId)
       .maybeSingle();
 
@@ -49,8 +56,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
     }
 
-    let paymentStatus = orderRow.payment_status || '';
-    let resolvedPaymentId = paymentId;
+    let paymentStatus = statusHint || 'approved';
+    let resolvedPaymentId = paymentId || null;
 
     if (paymentId) {
       const payment = await getPaymentInfo(paymentId);
@@ -61,8 +68,6 @@ export async function POST(req: Request) {
       if (externalReference && externalReference !== orderId) {
         return NextResponse.json({ error: 'external_reference no coincide con el pedido' }, { status: 400 });
       }
-    } else if (statusHint) {
-      paymentStatus = statusHint;
     }
 
     const isApproved = paymentStatus === 'approved';
@@ -70,39 +75,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, skipped: 'payment_not_approved', paymentStatus });
     }
 
-    const checkoutData = (orderRow.checkout_data || {}) as Record<string, unknown>;
-    const envioValue = Number((checkoutData as any)?.envio ?? 0);
-    const envioTexto = Number.isFinite(envioValue) && envioValue > 0 ? `$${envioValue.toFixed(2)}` : 'a coordinar';
-    const couponName = String((checkoutData as any)?.cupon || '').trim();
-    const descuentoValue = Number((checkoutData as any)?.descuentoCupon ?? 0);
-    const hasCoupon = Boolean(couponName);
-    const hasDiscountAmount = Number(descuentoValue || 0) > 0;
-    const bloqueDescuento = [
-      hasCoupon ? `💸 Cupón aplicado: ${couponName}` : null,
-      hasDiscountAmount ? `💰 Descuento aplicado: $${Number(descuentoValue).toFixed(2)}` : null,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
+    const checkoutData = orderRow.checkout_data as Record<string, unknown> | null;
     const alreadySent = Boolean(orderRow.email_sent);
-    if (!alreadySent) {
+
+    if (!alreadySent && checkoutData) {
       try {
         await sendOrderEmail({
           templateParams: {
             ...checkoutData,
             order_id: orderId,
-            costoEnvio: envioTexto,
-            costoEnvioValor: Number.isFinite(envioValue) ? envioValue.toFixed(2) : '0.00',
-            detalleEnvio: `Costo de envío: ${envioTexto}`,
-            descuento: hasCoupon ? `Cupón ${couponName}` : '',
-            descuentoMonto: hasDiscountAmount ? `$${Number(descuentoValue).toFixed(2)}` : '',
-            bloqueDescuento,
-            mostrarBloqueDescuento: hasCoupon || hasDiscountAmount,
-            bloqueEnvio: `📦 Costo de envío: ${envioTexto}`,
           },
         });
       } catch (emailError: any) {
-        console.warn('orders.confirm-payment email skipped:', emailError?.message || emailError);
+        console.warn('admin.orders.confirm-payment email skipped:', emailError?.message || emailError);
       }
     }
 
@@ -113,36 +98,37 @@ export async function POST(req: Request) {
         payment_status: paymentStatus,
         mp_payment_id: resolvedPaymentId || null,
         email_sent: true,
-        email_sent_at: alreadySent ? orderRow.email_sent_at : new Date().toISOString(),
+        email_sent_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('order_id', orderId);
 
     let shippingImportResult: any = null;
-    try {
-      shippingImportResult = await importShippingForOrder({
-        orderId,
-        checkoutData: orderRow.checkout_data as Record<string, unknown> | null,
-        cartItems: Array.isArray(orderRow.cart_items) ? orderRow.cart_items : [],
-        supabaseAdmin,
-      });
-    } catch (importError: any) {
-      console.warn('orders.confirm-payment shipping import skipped:', importError?.message || importError);
-      shippingImportResult = {
-        imported: false,
-        skipped: false,
-        reason: 'exception',
-        error: importError?.message || String(importError),
-      };
+    if (checkoutData) {
+      try {
+        shippingImportResult = await importShippingForOrder({
+          orderId,
+          checkoutData,
+          cartItems: Array.isArray(orderRow.cart_items) ? orderRow.cart_items : [],
+          supabaseAdmin,
+        });
+      } catch (importError: any) {
+        console.warn('admin.orders.confirm-payment shipping import skipped:', importError?.message || importError);
+        shippingImportResult = {
+          imported: false,
+          skipped: false,
+          reason: 'exception',
+          error: importError?.message || String(importError),
+        };
+      }
     }
 
-    return NextResponse.json({ ok: true, sent: !alreadySent, alreadySent, shippingImport: shippingImportResult });
+    return NextResponse.json({ ok: true, sent: !alreadySent, shippingImport: shippingImportResult });
   } catch (error: any) {
-    console.error('orders.confirm-payment error:', error);
+    console.error('admin.orders.confirm-payment error:', error);
     return NextResponse.json(
-      { error: 'Error confirmando pago y enviando email', detail: error?.message || null },
+      { error: 'Error confirmando pago de pedido', detail: error?.message || null },
       { status: 500 }
     );
   }
 }
-

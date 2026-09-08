@@ -17,6 +17,53 @@ export type CorreoArgentinoCartItem = {
   unit_price: number;
 };
 
+const provinceNameToCode: Record<string, string> = {
+  salta: 'A',
+  'buenos aires': 'B',
+  'provincia de buenos aires': 'B',
+  'ciudad autonoma de buenos aires': 'C',
+  'ciudad autónoma de buenos aires': 'C',
+  'capital federal': 'C',
+  catamarca: 'K',
+  chaco: 'H',
+  chubut: 'U',
+  cordoba: 'X',
+  córdoba: 'X',
+  corrientes: 'W',
+  'entre rios': 'E',
+  'entre ríos': 'E',
+  formosa: 'P',
+  jujuy: 'Y',
+  'la pampa': 'L',
+  'la rioja': 'F',
+  mendoza: 'M',
+  misiones: 'N',
+  neuquen: 'Q',
+  neuquén: 'Q',
+  'rio negro': 'R',
+  'río negro': 'R',
+  'santa fe': 'S',
+  'san juan': 'J',
+  'san luis': 'D',
+  'santa cruz': 'Z',
+  'santiago del estero': 'G',
+  'tierra del fuego': 'V',
+  tucuman: 'T',
+  tucumán: 'T',
+};
+
+const normalizeText = (value: string) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+function getProvinceCodeFromName(name: string) {
+  return provinceNameToCode[normalizeText(name)] || name;
+}
+
 export type CorreoArgentinoShippingImportResult = {
   ok: boolean;
   status: number;
@@ -42,6 +89,7 @@ export async function importCorreoArgentinoShipping(options: {
   address: CorreoArgentinoShippingAddress;
   items: CorreoArgentinoCartItem[];
   notes?: string;
+  agency?: string;
 }): Promise<CorreoArgentinoShippingImportResult> {
   const rawCustomerId = String(process.env.CORREO_CUSTOMER_ID || '').trim();
   const customerId = rawCustomerId.padStart(10, '0');
@@ -61,6 +109,7 @@ export async function importCorreoArgentinoShipping(options: {
         postalCodeOrigin,
         postalCodeDestination: options.destinationPostalCode,
         deliveredType: options.deliveryType === 'domicilio' ? 'D' : 'S',
+        agency: options.deliveryType === 'sucursal' ? options.agency || null : null,
       },
     };
 
@@ -84,37 +133,54 @@ export async function importCorreoArgentinoShipping(options: {
 
   const token = await getCorreoArgentinoToken();
 
+  const declaredValue = Math.max(
+    1,
+    options.items.reduce((sum, item) => sum + Number(item.unit_price || 0) * Number(item.quantity || 1), 0)
+  );
+
   const payload = {
     customerId,
-    tipoEnvio: options.deliveryType === 'domicilio' ? 'domicilio' : 'sucursal',
-    paquete: {
-      peso: Number(options.dimensions.weight),
-      alto: Number(options.dimensions.height),
-      ancho: Number(options.dimensions.width),
-      largo: Number(options.dimensions.length),
-    },
-    ordenNumero: String(options.orderId),
-    ordenReferencia: String(options.orderId),
-    descripcion: options.notes || `Pedido ${options.orderId}`,
-    receptor: {
-      nombre: options.customerName,
-      email: options.customerEmail,
-      telefono: options.customerPhone,
-      direccion: {
-        calle: options.address.street,
-        numero: options.address.number,
-        piso: options.address.floor || null,
-        departamento: options.address.apartment || null,
-        barrio: options.address.neighborhood || null,
-        localidad: options.address.locality,
-        provincia: options.address.province,
-        codigoPostal: options.address.postalCode,
+    extOrderId: String(options.orderId),
+    orderNumber: String(options.orderId),
+    sender: {
+      name: 'Refugio en Papel',
+      phone: process.env.ADMIN_PHONE || '',
+      cellPhone: process.env.ADMIN_PHONE || '',
+      email: process.env.ADMIN_EMAIL || '',
+      originAddress: {
+        streetName: process.env.CORREO_SENDER_STREET || null,
+        streetNumber: process.env.CORREO_SENDER_STREET_NUMBER || null,
+        floor: process.env.CORREO_SENDER_FLOOR || null,
+        apartment: process.env.CORREO_SENDER_APARTMENT || null,
+        city: process.env.CORREO_SENDER_CITY || null,
+        provinceCode: process.env.CORREO_SENDER_PROVINCE_CODE || null,
+        postalCode: postalCodeOrigin,
       },
     },
-    remitente: {
-      nombre: 'Refugio en Papel',
-      email: process.env.ADMIN_EMAIL || '',
-      telefono: process.env.ADMIN_PHONE || '',
+    recipient: {
+      name: options.customerName,
+      phone: options.customerPhone,
+      cellPhone: options.customerPhone,
+      email: options.customerEmail,
+    },
+    shipping: {
+      deliveryType: options.deliveryType === 'domicilio' ? 'D' : 'S',
+      agency: options.deliveryType === 'sucursal' ? options.agency || null : null,
+      address: {
+        streetName: options.address.street,
+        streetNumber: options.address.number,
+        floor: (options.address.floor || '').slice(0, 3),
+        apartment: (options.address.apartment || '').slice(0, 3),
+        city: options.address.locality,
+        provinceCode: getProvinceCodeFromName(options.address.province),
+        postalCode: options.address.postalCode,
+      },
+      productType: 'CP',
+      weight: Number(options.dimensions.weight),
+      declaredValue,
+      height: Number(options.dimensions.height),
+      length: Number(options.dimensions.length),
+      width: Number(options.dimensions.width),
     },
   };
 

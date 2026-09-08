@@ -84,7 +84,7 @@ export async function GET(req: Request) {
     let query = supabaseAdmin
       .from('orders')
       .select(
-        'order_id,status,payment_method,payment_status,mp_payment_id,customer_name,customer_email,amount_total,currency,email_sent,email_sent_at,created_at,updated_at'
+        'order_id,status,payment_method,payment_status,mp_payment_id,customer_name,customer_email,amount_total,currency,email_sent,email_sent_at,created_at,updated_at,checkout_data'
       )
       .order('created_at', { ascending: false })
       .limit(limit);
