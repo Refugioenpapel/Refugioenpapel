@@ -20,11 +20,26 @@ function parsePhone(raw?: string) {
   return { area_code, number };
 }
 
+function resolveSiteUrl(req: Request) {
+  const explicitSiteUrl = String(process.env.NEXT_PUBLIC_SITE_URL || '').trim();
+  if (explicitSiteUrl) return explicitSiteUrl.replace(/\/$/, '');
+
+  const deployUrl = String(process.env.DEPLOY_PRIME_URL || process.env.URL || '').trim();
+  if (deployUrl) return deployUrl.replace(/\/$/, '');
+
+  return new URL(req.url).origin.replace(/\/$/, '');
+}
+
+function isMercadoPagoSandboxEnabled() {
+  return String(process.env.MERCADOPAGO_USE_SANDBOX || '').toLowerCase() === 'true';
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { items, orderId, payer, shipping } = body;
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
+    const siteUrl = resolveSiteUrl(req);
+    const useSandbox = isMercadoPagoSandboxEnabled();
 
     const preference = new Preference(mpClient);
     const phoneObj = parsePhone(payer?.phone);
@@ -71,12 +86,13 @@ export async function POST(req: Request) {
 
         auto_return: 'approved',
 
-        // Opcional para sandbox:
-        // sandbox: true,
-
         notification_url: `${siteUrl}/api/mercadopago/webhook`,
       },
     });
+
+    const checkoutUrl = useSandbox && result.sandbox_init_point
+      ? result.sandbox_init_point
+      : result.init_point;
 
     try {
       const supabaseAdmin = getSupabaseAdmin();
@@ -92,8 +108,10 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      init_point: result.init_point,
+      init_point: checkoutUrl,
+      production_init_point: result.init_point,
       sandbox_init_point: result.sandbox_init_point,
+      sandbox: useSandbox,
     });
   } catch (error: any) {
     console.error('MercadoPago error:', error);

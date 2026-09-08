@@ -1,2 +1,10 @@
 [build.environment]
 SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+
+[context.branch-deploy.environment]
+CORREO_IMPORT_SHIPPING = "false"
+MERCADOPAGO_USE_SANDBOX = "true"
+
+[context.deploy-preview.environment]
+CORREO_IMPORT_SHIPPING = "false"
+MERCADOPAGO_USE_SANDBOX = "true"
