@@ -1,7 +1,7 @@
 // app/productos/[slug]/ProductDetailClient.tsx
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useCart } from '@context/CartContext';
 import ProductImageCarousel from '@components/ProductImageCarousel';
 import type { Product } from 'types/product';
@@ -40,6 +40,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [branchOptions, setBranchOptions] = useState<CorreoSucursalOption[]>([]);
   const [branchFallback, setBranchFallback] = useState(false);
+  const hasInitializedStoredCp = useRef(false);
 
   const { addToCart, openCart } = useCart();
 
@@ -55,6 +56,26 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     setSelectedVariant(getDefaultVariant(product));
     setQuantity(1);
   }, [product.id, product.slug]);
+
+  useEffect(() => {
+    try {
+      const storedCp = localStorage.getItem('cartShippingCp');
+      if (storedCp) setCp(storedCp);
+    } catch (error) {
+      console.warn('No se pudo leer CP guardado:', error);
+    } finally {
+      hasInitializedStoredCp.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasInitializedStoredCp.current) return;
+    try {
+      localStorage.setItem('cartShippingCp', cp);
+    } catch (error) {
+      console.warn('No se pudo guardar CP:', error);
+    }
+  }, [cp]);
 
   const firstImage = useMemo(
     () => (product.images?.length ? product.images[0] : '/placeholder.png'),

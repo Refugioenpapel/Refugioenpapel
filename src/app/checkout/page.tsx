@@ -237,6 +237,14 @@ export default function CheckoutPage() {
       setSelectedBranchId('');
     }
 
+    if (name === 'cp') {
+      try {
+        localStorage.setItem('cartShippingCp', value);
+      } catch (error) {
+        console.warn('No se pudo guardar CP:', error);
+      }
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -276,6 +284,17 @@ export default function CheckoutPage() {
       .catch((error) => {
         console.error('Error cargando provincias:', error);
       });
+  }, []);
+
+  useEffect(() => {
+    try {
+      const storedCp = localStorage.getItem('cartShippingCp');
+      if (storedCp) {
+        setFormData((prev) => (prev.cp ? prev : { ...prev, cp: storedCp }));
+      }
+    } catch (error) {
+      console.warn('No se pudo leer CP guardado:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -717,98 +736,166 @@ export default function CheckoutPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-xl shadow">
         {/* CONTACTO */}
-        <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Datos de contacto:</h3>
-        <input
-          type="text"
-          name="nombre"
-          required
-          value={formData.nombre}
-          onChange={handleChange}
-          placeholder="Nombre"
-          className="w-full border p-2 rounded-md"
-        />
-        <input
-          type="text"
-          name="apellido"
-          required
-          value={formData.apellido}
-          onChange={handleChange}
-          placeholder="Apellido"
-          className="w-full border p-2 rounded-md"
-        />
-        <input
-          type="email"
-          name="email"
-          required
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="Correo electrónico"
-          className="w-full border p-2 rounded-md"
-        />
-        <input
-          type="tel"
-          name="telefono"
-          required
-          value={formData.telefono}
-          onChange={handleChange}
-          placeholder="Teléfono"
-          className="w-full border p-2 rounded-md"
-        />
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-lg font-semibold text-[#A56ABF]">Datos de contacto</h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Usaremos estos datos para enviarte la confirmación y coordinar tu pedido.
+            </p>
+          </div>
 
-        {/* PERSONALIZACIÓN (NO SE TOCA) */}
-        <div className="border-t pt-4 mt-4">
-          <h3 className="text-md font-semibold text-[#A56ABF] mb-2">
-            Datos para la personalización del producto:
-          </h3>
-          <input
-            type="text"
-            name="evento"
-            required
-            value={formData.evento}
-            onChange={handleChange}
-            placeholder="Temática deseada (Ejemplo: Baby Shark, Unicornio...)"
-            className="w-full border p-2 rounded-md mb-2"
-          />
-          <input
-            type="text"
-            name="nombrePersonalizado"
-            required
-            value={formData.nombrePersonalizado}
-            onChange={handleChange}
-            placeholder="Nombre del niño/a"
-            className="w-full border p-2 rounded-md mb-2"
-          />
-          <input
-            type="number"
-            name="edad"
-            required
-            value={formData.edad}
-            onChange={handleChange}
-            placeholder="Edad"
-            className="w-full border p-2 rounded-md mb-2"
-          />
-          <input
-            type="text"
-            name="fechaHora"
-            required
-            value={formData.fechaHora}
-            onChange={handleChange}
-            placeholder="Fecha del evento"
-            className="w-full border p-2 rounded-md mb-2"
-          />
-          <input
-            type="text"
-            name="direccioninvitacion"
-            value={formData.direccioninvitacion}
-            onChange={handleChange}
-            placeholder="Dirección para la invitación (opcional)"
-            className="w-full border p-2 rounded-md mb-2"
-          />
-        </div>
+          <div className="rounded-3xl border border-[#E5D2ED] bg-[#FEF7FF] p-4 sm:p-5 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Nombre *</span>
+                <input
+                  type="text"
+                  name="nombre"
+                  required
+                  value={formData.nombre}
+                  onChange={handleChange}
+                  placeholder="Tu nombre"
+                  autoComplete="given-name"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Apellido *</span>
+                <input
+                  type="text"
+                  name="apellido"
+                  required
+                  value={formData.apellido}
+                  onChange={handleChange}
+                  placeholder="Tu apellido"
+                  autoComplete="family-name"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Correo electrónico *</span>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="tuemail@ejemplo.com"
+                  autoComplete="email"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Teléfono *</span>
+                <input
+                  type="tel"
+                  name="telefono"
+                  required
+                  value={formData.telefono}
+                  onChange={handleChange}
+                  placeholder="Ej: 11 1234-5678"
+                  autoComplete="tel"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {/* PERSONALIZACIÓN */}
+        <section className="border-t pt-5 mt-5 space-y-3">
+          <div>
+            <h3 className="text-lg font-semibold text-[#A56ABF]">
+              Datos para la personalización del producto
+            </h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Completá la información que vamos a usar para preparar el diseño.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-[#E5D2ED] bg-[#FEF7FF] p-4 sm:p-5 space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold text-gray-700">Temática deseada *</span>
+              <input
+                type="text"
+                name="evento"
+                required
+                value={formData.evento}
+                onChange={handleChange}
+                placeholder="Ej: Baby Shark, Unicornio, fútbol..."
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold text-gray-700">Nombre del niño/a *</span>
+              <input
+                type="text"
+                name="nombrePersonalizado"
+                required
+                value={formData.nombrePersonalizado}
+                onChange={handleChange}
+                placeholder="Nombre que irá en el diseño"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+              />
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Edad *</span>
+                <input
+                  type="number"
+                  name="edad"
+                  required
+                  value={formData.edad}
+                  onChange={handleChange}
+                  placeholder="Ej: 5"
+                  min="0"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Fecha del evento *</span>
+                <input
+                  type="text"
+                  name="fechaHora"
+                  required
+                  value={formData.fechaHora}
+                  onChange={handleChange}
+                  placeholder="Ej: 15/08/2026"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold text-gray-700">Dirección para la invitación</span>
+              <input
+                type="text"
+                name="direccioninvitacion"
+                value={formData.direccioninvitacion}
+                onChange={handleChange}
+                placeholder="Opcional"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+              />
+            </label>
+          </div>
+        </section>
 
         {/* ✅ DIRECCIÓN / ENTREGA (AHORA SIEMPRE, NO IMPORTA SI ES DIGITAL O FÍSICO) */}
-        <div className="border-t pt-4 mt-4 space-y-2">
-          <h3 className="text-md font-semibold text-[#A56ABF] mb-2">Dirección / Entrega:</h3>
+        <div className="border-t pt-5 mt-5 space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[#A56ABF]">Dirección / Entrega</h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Completá estos datos para calcular el envío y coordinar correctamente tu pedido.
+            </p>
+          </div>
 
           {contieneFisicos && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -874,99 +961,122 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <select
-              name="provincia"
-              required
-              value={formData.provincia}
-              onChange={handleChange}
-              className="w-full border p-2 rounded-md"
-            >
-              <option value="" disabled>
-                Seleccioná una provincia
-              </option>
-              {(provincias.length > 0 ? provincias.map((prov) => prov.nombre) : defaultProvincias).map(
-                (provincia) => (
-                  <option key={provincia} value={provincia}>
-                    {provincia}
+          <div className="rounded-3xl border border-[#E5D2ED] bg-[#FEF7FF] p-4 sm:p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Provincia *</span>
+                <select
+                  name="provincia"
+                  required
+                  value={formData.provincia}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                >
+                  <option value="" disabled>
+                    Seleccioná una provincia
                   </option>
-                )
-              )}
-            </select>
-            <div className="relative">
+                  {provinciaOptions.map((provincia) => (
+                    <option key={provincia} value={provincia}>
+                      {provincia}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="relative block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Localidad / Ciudad *</span>
+                <input
+                  type="text"
+                  name="localidad"
+                  required
+                  value={formData.localidad}
+                  onFocus={handleLocalidadFocus}
+                  onBlur={handleLocalidadBlur}
+                  onChange={(event) => {
+                    handleChange(event);
+                    setShowLocalidadSuggestions(true);
+                  }}
+                  placeholder="Ej: San Justo"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                  autoComplete="off"
+                />
+                {showLocalidadSuggestions && visibleLocalidadSuggestions.length > 0 && (
+                  <ul className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto rounded-xl border border-[#E5D2ED] bg-white py-1 text-sm shadow-xl">
+                    {visibleLocalidadSuggestions.map((localidad) => (
+                      <li key={localidad}>
+                        <button
+                          type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setSelectedBranchId('');
+                            setFormData((prev) => ({ ...prev, localidad }));
+                            setShowLocalidadSuggestions(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-gray-700 transition hover:bg-[#F7F2FA] hover:text-[#A084CA]"
+                        >
+                          {localidad}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold text-gray-700">Código Postal *</span>
               <input
                 type="text"
-                name="localidad"
+                name="cp"
                 required
-                value={formData.localidad}
-                onFocus={handleLocalidadFocus}
-                onBlur={handleLocalidadBlur}
-                onChange={(event) => {
-                  handleChange(event);
-                  setShowLocalidadSuggestions(true);
-                }}
-                placeholder="Localidad / Ciudad"
-                className="w-full border p-2 rounded-md"
-                autoComplete="off"
+                value={formData.cp}
+                onChange={handleChange}
+                placeholder="Ej: 1704"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
               />
-              {showLocalidadSuggestions && visibleLocalidadSuggestions.length > 0 && (
-                <ul className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto rounded-xl border border-[#E5D2ED] bg-white py-1 text-sm shadow-xl">
-                  {visibleLocalidadSuggestions.map((localidad) => (
-                    <li key={localidad}>
-                      <button
-                        type="button"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          setSelectedBranchId('');
-                          setFormData((prev) => ({ ...prev, localidad }));
-                          setShowLocalidadSuggestions(false);
-                        }}
-                        className="w-full px-3 py-2 text-left text-gray-700 transition hover:bg-[#F7F2FA] hover:text-[#A084CA]"
-                      >
-                        {localidad}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Si ya lo ingresaste en el producto o carrito, aparecerá precargado acá.
+              </p>
+            </label>
           </div>
 
-          <input
-            type="text"
-            name="cp"
-            required
-            value={formData.cp}
-            onChange={handleChange}
-            placeholder="Código Postal"
-            className="w-full border p-2 rounded-md"
-          />
-
           {contieneFisicos && (
-            <div className="mt-4 rounded-3xl border border-[#E5D2ED] bg-white p-4 text-sm text-gray-700">
-              <h4 className="font-semibold text-[#A084CA] mb-3">Cotización de Correo Argentino</h4>
-              {shippingLoading ? (
-                <p className="text-gray-600">Cotizando envío...</p>
+            <div className="rounded-3xl border border-[#E5D2ED] bg-white p-4 sm:p-5 text-sm text-gray-700 shadow-sm">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <h4 className="font-semibold text-[#A084CA]">Cotización de Correo Argentino</h4>
+                {formData.cp.trim().length >= 4 && !shippingLoading && !shippingError && (
+                  <span className="rounded-full bg-[#F7F2FA] px-3 py-1 text-xs font-semibold text-[#7D5BBE]">
+                    {formData.metodoEntrega === 'domicilio' ? 'Domicilio' : 'Sucursal'} seleccionado
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3">
+                {shippingLoading ? (
+                <p className="rounded-2xl border border-[#E5D2ED] bg-[#FAF8FF] p-3 text-gray-600">Cotizando envío...</p>
               ) : shippingError ? (
-                <p className="text-red-600">{shippingError}</p>
+                <p className="rounded-2xl border border-red-200 bg-red-50 p-3 text-red-600">{shippingError}</p>
               ) : formData.cp.trim().length >= 4 ? (
                 <div className="space-y-3">
-                  <div className="rounded-2xl border border-[#E5D2ED] bg-[#F7F2FA] p-3">
-                    <div className="flex justify-between gap-3">
-                      <span>
-                        {formData.metodoEntrega === 'domicilio'
-                          ? 'Envío a domicilio seleccionado'
-                          : 'Retiro en sucursal seleccionado'}
-                      </span>
-                      <span className="font-semibold text-[#A084CA]">
-                        {envioPrecio !== null ? `$${envioPrecio.toFixed(2)}` : 'a coordinar'}
-                      </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="rounded-2xl border border-[#E5D2ED] bg-[#F7F2FA] p-3">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">A domicilio</p>
+                      <p className="mt-1 font-semibold text-[#A084CA]">
+                        {shippingRates.domicilio !== null
+                          ? `$${shippingRates.domicilio.toFixed(2)}`
+                          : 'a coordinar'}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-gray-600">
-                      {formData.metodoEntrega === 'domicilio'
-                        ? 'El envío se despacha a la dirección ingresada.'
-                        : 'Seleccioná abajo la sucursal donde querés retirar.'}
-                    </p>
+                    <div className="rounded-2xl border border-[#E5D2ED] bg-[#F7F2FA] p-3">
+                      <p className="text-xs uppercase tracking-wide text-gray-500">Retiro en sucursal</p>
+                      <p className="mt-1 font-semibold text-[#A084CA]">
+                        {shippingRates.sucursal !== null
+                          ? `$${shippingRates.sucursal.toFixed(2)}`
+                          : 'a coordinar'}
+                      </p>
+                    </div>
                   </div>
 
                   {formData.metodoEntrega === 'sucursal' && branchOptions.length > 0 ? (
@@ -1006,80 +1116,101 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   ) : formData.metodoEntrega === 'sucursal' ? (
-                    <p className="text-sm text-gray-600">
+                    <p className="rounded-2xl border border-[#E5D2ED] bg-[#FAF8FF] p-3 text-sm text-gray-600">
                       {branchFallback
                         ? 'No encontramos sucursales confiables para la provincia/localidad/CP ingresados. Revisá los datos o elegí envío a domicilio.'
                         : 'Las sucursales se ofrecen según la provincia, localidad y código postal ingresados.'}
                     </p>
                   ) : (
-                    <p className="text-sm text-gray-600">
+                    <p className="rounded-2xl border border-[#E5D2ED] bg-[#FAF8FF] p-3 text-sm text-gray-600">
                       Si preferís retirar, cambiá a “Retiro en sucursal” y elegí una opción disponible.
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-gray-600">
+                <p className="rounded-2xl border border-[#E5D2ED] bg-[#FAF8FF] p-3 text-gray-600">
                   Ingresá el código postal para ver la cotización de Correo Argentino.
                 </p>
               )}
+              </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              name="calle"
-              required
-              value={formData.calle}
-              onChange={handleChange}
-              placeholder="Calle"
-              className="w-full border p-2 rounded-md"
-            />
-            <input
-              type="text"
-              name="numero"
-              required
-              value={formData.numero}
-              onChange={handleChange}
-              placeholder="Número"
-              className="w-full border p-2 rounded-md"
-            />
+          <div className="rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 space-y-3">
+            <h4 className="font-semibold text-gray-800">Domicilio para completar el pedido</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="block sm:col-span-2">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Calle *</span>
+                <input
+                  type="text"
+                  name="calle"
+                  required
+                  value={formData.calle}
+                  onChange={handleChange}
+                  placeholder="Ej: Av. Siempre Viva"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Número *</span>
+                <input
+                  type="text"
+                  name="numero"
+                  required
+                  value={formData.numero}
+                  onChange={handleChange}
+                  placeholder="123"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Piso</span>
+                <input
+                  type="text"
+                  name="piso"
+                  value={formData.piso}
+                  onChange={handleChange}
+                  placeholder="Opcional"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Depto</span>
+                <input
+                  type="text"
+                  name="departamento"
+                  value={formData.departamento}
+                  onChange={handleChange}
+                  placeholder="Opcional"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-gray-700">Barrio</span>
+                <input
+                  type="text"
+                  name="barrio"
+                  value={formData.barrio}
+                  onChange={handleChange}
+                  placeholder="Opcional"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-[#A084CA] focus:outline-none focus:ring-2 focus:ring-[#E5D2ED]"
+                />
+              </label>
+            </div>
+
+            <p className="text-xs text-gray-600">
+              *Pedimos estos datos para coordinar la entrega y tener tu pedido completo.
+              {formData.provincia && !showLocalidadFallback && localidadSuggestions.length === 0
+                ? ' No se encontraron localidades para la provincia seleccionada. Verificá el nombre o probá con otra localidad.'
+                : ''}
+            </p>
           </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              name="piso"
-              value={formData.piso}
-              onChange={handleChange}
-              placeholder="Piso (opcional)"
-              className="w-full border p-2 rounded-md"
-            />
-            <input
-              type="text"
-              name="departamento"
-              value={formData.departamento}
-              onChange={handleChange}
-              placeholder="Depto (opcional)"
-              className="w-full border p-2 rounded-md"
-            />
-          </div>
-
-          <input
-            type="text"
-            name="barrio"
-            value={formData.barrio}
-            onChange={handleChange}
-            placeholder="Barrio (opcional)"
-            className="w-full border p-2 rounded-md"
-          />
-
-          <p className="text-xs text-gray-600">
-            *Pedimos estos datos para coordinar la entrega y tener tu pedido completo.
-            {formData.provincia && !showLocalidadFallback && localidadSuggestions.length === 0
-              ? ' No se encontraron localidades para la provincia seleccionada. Verificá el nombre o probá con otra localidad.'
-              : ''}
-          </p>
         </div>
 
         <textarea
