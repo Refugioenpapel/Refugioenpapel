@@ -5,7 +5,7 @@ import { useCart } from '@context/CartContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { applyProductDiscount, extractCorreoRateAmount, sanitizeDiscountPct } from '@lib/pricing';
 
 const currency = (n: number) => `$${n.toFixed(2)}`;
@@ -37,6 +37,7 @@ const CartDrawer = () => {
     domicilio: number | null;
     sucursal: number | null;
   }>({ domicilio: null, sucursal: null });
+  const hasSkippedInitialCpPersist = useRef(false);
 
   useEffect(() => {
     try {
@@ -45,9 +46,14 @@ const CartDrawer = () => {
     } catch (error) {
       console.warn('No se pudo leer CP del localStorage:', error);
     }
-  }, []);
+  }, [isCartOpen]);
 
   useEffect(() => {
+    if (!hasSkippedInitialCpPersist.current) {
+      hasSkippedInitialCpPersist.current = true;
+      return;
+    }
+
     try {
       localStorage.setItem('cartShippingCp', cp);
     } catch (error) {
