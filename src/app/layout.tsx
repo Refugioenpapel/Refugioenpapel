@@ -11,6 +11,7 @@ import { Just_Another_Hand, Allura, Ruluko } from "next/font/google";
 import Navbar from "../components/Navbar";
 import { CartProvider } from "../context/CartContext";
 import Footer from "../components/footer";
+import FloatingWhatsApp from "../components/FloatingWhatsApp";
 
 // Fuentes existentes
 const nunito = Nunito({ subsets: ["latin"], weight: "400", variable: "--font-nunito" });
@@ -96,6 +97,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           {/* ⭐ Footer */}
           <Footer />
+
+          <FloatingWhatsApp />
         </CartProvider>
       </body>
     </html>
