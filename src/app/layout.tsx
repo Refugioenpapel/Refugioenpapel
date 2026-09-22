@@ -8,10 +8,8 @@ import {
 
 import { Just_Another_Hand, Allura, Ruluko } from "next/font/google";
 
-import Navbar from "../components/Navbar";
 import { CartProvider } from "../context/CartContext";
-import Footer from "../components/footer";
-import FloatingWhatsApp from "../components/FloatingWhatsApp";
+import AppShell from "@components/AppShell";
 
 // Fuentes existentes
 const nunito = Nunito({ subsets: ["latin"], weight: "400", variable: "--font-nunito" });
@@ -85,20 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   {/* Barrita rosa de abajo */}
   <div className="w-full h-[4px] bg-[#ffabcc]" />
 </div>
-
-
-
-
-          {/* ⭐ Navbar pegajosa */}
-          <Navbar />
-
-          {/* ⭐ Contenido con espacio para la marquesina + navbar */}
-          <main className="pt-[32px]">{children}</main>
-
-          {/* ⭐ Footer */}
-          <Footer />
-
-          <FloatingWhatsApp />
+          <AppShell>{children}</AppShell>
         </CartProvider>
       </body>
     </html>

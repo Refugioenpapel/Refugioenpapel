@@ -15,6 +15,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useCart } from "@context/CartContext";
+import { fetchCategoryOptions, type CategoryOption } from "@lib/supabase/categories";
 import { fetchProducts } from "@lib/supabase/products";
 import type { Product } from "types/product";
 
@@ -25,6 +26,7 @@ export default function Navbar() {
   const [productosOpen, setProductosOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<ProductWithPrice[]>([]);
+  const [productCategories, setProductCategories] = useState<CategoryOption[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { cartItems, openCart, closeCart } = useCart();
@@ -32,6 +34,15 @@ export default function Navbar() {
 
   useEffect(() => {
     setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      const categories = await fetchCategoryOptions();
+      setProductCategories(categories);
+    };
+
+    loadCategories();
   }, []);
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -228,24 +239,15 @@ export default function Navbar() {
 
                   {productosOpen && (
                     <div className="ml-4 mt-2 flex flex-col space-y-2 text-sm text-gray-700">
-                      <Link
-                        href="/productos?categoria=souvenirs"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Souvenirs
-                      </Link>
-                      <Link
-                        href="/productos?categoria=candy-deco"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Candy Bar y Deco
-                      </Link>
-                      <Link
-                        href="/productos?categoria=productos-digitales"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Productos Digitales
-                      </Link>
+                      {productCategories.map((category) => (
+                        <Link
+                          key={category.value}
+                          href={`/productos?categoria=${encodeURIComponent(category.value)}`}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          {category.label}
+                        </Link>
+                      ))}
                     </div>
                   )}
                 </div>

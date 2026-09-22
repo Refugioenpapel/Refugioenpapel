@@ -81,6 +81,13 @@ export default function AdminPage() {
           </Link>
 
           <Link
+            href="/admin/categorias"
+            className="bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600 text-sm"
+          >
+            Categorías
+          </Link>
+
+          <Link
             href="/admin/ventas"
             className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 text-sm"
           >
