@@ -62,7 +62,7 @@ export default function ProductCarousel({
       <div
         ref={trackRef}
         className="
-          relative flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2
+          relative flex items-stretch gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-3 pt-1 sm:gap-4
           [-ms-overflow-style:none] [scrollbar-width:none]
         "
         style={{ scrollbarWidth: 'none' } as any}
@@ -79,23 +79,23 @@ export default function ProductCarousel({
             <article
               key={p.id}
               className="
-                snap-start flex-shrink-0
-                basis-[82%] sm:basis-[48%] md:basis-[31%] lg:basis-[23.5%] xl:basis-[18.5%]
+                snap-start flex-shrink-0 self-stretch
+                basis-[calc((100%_-_0.75rem)/2)] sm:basis-[calc((100%_-_1rem)/2)] md:basis-[calc((100%_-_2rem)/3)] lg:basis-[calc((100%_-_3rem)/4)] xl:basis-[calc((100%_-_4rem)/5)]
               "
             >
               <Link
                 href={`/productos/${p.slug}`}
-                className="group block h-full rounded-2xl border bg-white shadow-sm hover:shadow-md transition"
+                className="group flex h-full min-w-0 flex-col overflow-hidden rounded-[1.1rem] border border-pink-100/80 bg-white shadow-sm shadow-pink-100/70 transition duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-pink-100 sm:rounded-[1.35rem]"
               >
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-2xl">
+                <div className="relative m-1.5 mb-0 aspect-square overflow-hidden rounded-[1rem] bg-[#fff8fa] sm:m-2 sm:aspect-[3/4] sm:rounded-[1.1rem]">
                   {badge && <BadgePill label={badge.label} position="top-left" />}
                   {img ? (
                     <Image
                       src={img}
                       alt={p.name}
                       fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      sizes="(max-width: 640px) 82vw, (max-width: 768px) 48vw, (max-width: 1024px) 31vw, (max-width: 1280px) 23.5vw, 18.5vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 43vw, (max-width: 1024px) 29vw, (max-width: 1280px) 22.5vw, 18vw"
                     />
                   ) : (
                     <div className="absolute inset-0 grid place-content-center text-xs text-gray-400">
@@ -104,21 +104,19 @@ export default function ProductCarousel({
                   )}
                 </div>
 
-                <div className="p-3 text-center">
-                  <h3 className="line-clamp-2 text-base font-semibold text-gray-800">{p.name}</h3>
+                <div className="flex flex-1 min-w-0 flex-col px-2.5 pb-3 pt-2 text-center sm:px-4 sm:pb-4 sm:pt-3">
+                  <h3 className="min-h-[1rem] truncate text-[0.76rem] font-bold uppercase leading-tight tracking-[0.01em] text-gray-800 sm:min-h-[1.25rem] sm:text-[0.95rem]">{p.name}</h3>
 
-                  {p.description && (
-                    <p className="mt-1 line-clamp-2 text-sm text-gray-500">{p.description}</p>
-                  )}
+                  <p className="mt-1.5 min-h-[0.95rem] truncate text-[0.72rem] leading-snug text-gray-500 sm:mt-2 sm:min-h-[2.1rem] sm:line-clamp-2 sm:text-sm">{p.description || '\u00a0'}</p>
 
                   {typeof p.price === 'number' && (
                     <PriceBlock
-                      className="mt-3"
+                      className="mt-3 sm:mt-3"
                       price={p.price}
                       discountPct={p.discount ?? 0}
-                      priceClassName="text-lg font-bold text-[#A084CA]"
-                      compareClassName="text-gray-400 line-through text-sm"
-                      transferClassName="text-sm text-gray-500"
+                      priceClassName="text-sm font-bold text-[#A084CA] sm:text-[1.05rem]"
+                      compareClassName="text-xs text-gray-400 line-through sm:text-sm"
+                      transferClassName="mt-0.5 text-[0.72rem] leading-tight text-gray-500 sm:text-sm"
                       align="center"
                     />
                   )}
