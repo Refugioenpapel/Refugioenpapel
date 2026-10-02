@@ -1,6 +1,23 @@
 import { supabase } from "@lib/supabaseClient";
 import type { Product } from "types/product";
 
+const HOME_PRODUCTS_SELECT = `
+  id,
+  name,
+  slug,
+  description,
+  category,
+  price,
+  discount,
+  images,
+  image_public_ids,
+  is_featured,
+  badge_label,
+  variants,
+  bulk_threshold_qty,
+  bulk_discount_pct
+`;
+
 // Mapea variantes de la BD a la forma que usa tu UI
 function mapVariants(dbVariants: any[] | null | undefined) {
   if (!Array.isArray(dbVariants)) return [];
@@ -29,6 +46,23 @@ export async function fetchProducts(options?: {
   const { data, error } = await query;
   if (error) {
     console.error("Error fetching products:", error);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    ...row,
+    variants: mapVariants(row.variants),
+  })) as Product[];
+}
+
+export async function fetchHomeProducts(): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select(HOME_PRODUCTS_SELECT)
+    .order("id", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching home products:", error);
     return [];
   }
 

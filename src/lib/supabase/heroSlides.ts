@@ -16,6 +16,18 @@ export type HeroSlide = {
 
 const TABLE = "hero_slides";
 
+const PUBLIC_SLIDES_SELECT = `
+  id,
+  title,
+  subtitle,
+  button_label,
+  button_url,
+  image_url,
+  image_mobile_url,
+  sort_order,
+  is_active
+`;
+
 // Obtener TODOS los banners (admin)
 export async function fetchAllSlides(): Promise<HeroSlide[]> {
   const { data, error } = await supabase
@@ -35,7 +47,7 @@ export async function fetchAllSlides(): Promise<HeroSlide[]> {
 export async function fetchActiveSlides(): Promise<HeroSlide[]> {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("*")
+    .select(PUBLIC_SLIDES_SELECT)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 

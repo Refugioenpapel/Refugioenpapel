@@ -13,10 +13,16 @@ const FALLBACK_SECONDARY_CTA = {
   href: "/como-comprar",
 };
 
-export default function HeroCarouselDynamic() {
-  const [slides, setSlides] = useState<HeroSlide[] | null>(null);
+type Props = {
+  initialSlides?: HeroSlide[];
+};
+
+export default function HeroCarouselDynamic({ initialSlides }: Props) {
+  const [slides, setSlides] = useState<HeroSlide[] | null>(initialSlides ?? null);
 
   useEffect(() => {
+    if (initialSlides) return;
+
     (async () => {
       try {
         const data = await fetchActiveSlides();
@@ -26,7 +32,7 @@ export default function HeroCarouselDynamic() {
         setSlides([]); // marca que terminó de cargar, sin datos
       }
     })();
-  }, []);
+  }, [initialSlides]);
 
   // 🟣 Mientras NO sabemos si hay banners → placeholder suave
   if (slides === null) {
