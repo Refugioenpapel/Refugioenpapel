@@ -12,9 +12,18 @@ import { useEffect, useMemo, useState } from "react";
 const ENABLE_XMAS_DECOR =
   process.env.NEXT_PUBLIC_XMAS_DECOR === "true" ? true : false;
 
+/**
+ * 🎃 HALLOWEEN
+ * Para activar/desactivar:
+ * - NEXT_PUBLIC_HALLOWEEN_DECOR=true en Netlify
+ * - o cambiá ENABLE_HALLOWEEN_DECOR a true/false
+ */
+const ENABLE_HALLOWEEN_DECOR =
+  process.env.NEXT_PUBLIC_HALLOWEEN_DECOR === "false" ? false : true;
+
 export default function SeasonalOverlay() {
-  // Si está apagado, no renderiza nada
-  if (!ENABLE_XMAS_DECOR) return null;
+  // Si ambos están apagados, no renderiza nada
+  if (!ENABLE_XMAS_DECOR && !ENABLE_HALLOWEEN_DECOR) return null;
 
   const [ready, setReady] = useState(false);
   const [showSanta, setShowSanta] = useState(true);
@@ -35,12 +44,77 @@ export default function SeasonalOverlay() {
     });
   }, []);
 
+  const spiders = useMemo(() => {
+    return Array.from({ length: 7 }).map((_, i) => {
+      const left = 5 + Math.random() * 90;
+      const top = 8 + Math.random() * 48;
+      const drop = 40 + Math.random() * 120;
+      const duration = 4.5 + Math.random() * 4;
+      const delay = Math.random() * 3;
+      const size = 22 + Math.random() * 12;
+
+      return { id: i, left, top, drop, duration, delay, size };
+    });
+  }, []);
+
+  const bats = useMemo(() => {
+    return Array.from({ length: 5 }).map((_, i) => {
+      const top = 12 + Math.random() * 42;
+      const duration = 10 + Math.random() * 7;
+      const delay = Math.random() * 8;
+      const size = 22 + Math.random() * 12;
+
+      return { id: i, top, duration, delay, size };
+    });
+  }, []);
+
   if (!ready) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
+      {ENABLE_HALLOWEEN_DECOR && (
+        <>
+          <div className="halloween-web halloween-web-left" aria-hidden="true" />
+          <div className="halloween-web halloween-web-right" aria-hidden="true" />
+
+          {spiders.map((spider) => (
+            <span
+              key={spider.id}
+              className="halloween-spider"
+              style={{
+                left: `${spider.left}%`,
+                top: `${spider.top}px`,
+                fontSize: `${spider.size}px`,
+                animationDuration: `${spider.duration}s`,
+                animationDelay: `${spider.delay}s`,
+                ["--spider-drop" as string]: `${spider.drop}px`,
+              }}
+              aria-hidden="true"
+            >
+              🕷️
+            </span>
+          ))}
+
+          {bats.map((bat) => (
+            <span
+              key={bat.id}
+              className="halloween-bat"
+              style={{
+                top: `${bat.top}%`,
+                fontSize: `${bat.size}px`,
+                animationDuration: `${bat.duration}s`,
+                animationDelay: `${bat.delay}s`,
+              }}
+              aria-hidden="true"
+            >
+              🦇
+            </span>
+          ))}
+        </>
+      )}
+
       {/* 🎅 Papá Noel cruzando una sola vez */}
-      {showSanta && (
+      {ENABLE_XMAS_DECOR && showSanta && (
         <div className="xmas-santa" onAnimationEnd={() => setShowSanta(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -52,7 +126,7 @@ export default function SeasonalOverlay() {
       )}
 
       {/* ❄ Copitos infinitos */}
-      {flakes.map((f) => (
+      {ENABLE_XMAS_DECOR && flakes.map((f) => (
         <span
           key={f.id}
           className="xmas-snowflake"

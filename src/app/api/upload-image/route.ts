@@ -51,7 +51,12 @@ export async function POST(req: NextRequest) {
       public_id: string;
     }>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder },
+        {
+          folder,
+          fetch_format: "auto",
+          quality: "auto:good",
+          flags: "progressive",
+        },
         (err, res) => {
           if (err || !res) {
             return reject(err || new Error("Upload failed"));
