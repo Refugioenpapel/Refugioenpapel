@@ -55,11 +55,17 @@ export async function fetchProducts(options?: {
   })) as Product[];
 }
 
-export async function fetchHomeProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
+export async function fetchHomeProducts(options?: {
+  featuredOnly?: boolean;
+}): Promise<Product[]> {
+  let query = supabase
     .from("products")
     .select(HOME_PRODUCTS_SELECT)
     .order("id", { ascending: false });
+
+  if (options?.featuredOnly) query = query.eq("is_featured", true);
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Error fetching home products:", error);

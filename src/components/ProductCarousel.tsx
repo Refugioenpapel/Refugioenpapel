@@ -105,7 +105,7 @@ export default function ProductCarousel({
                 </div>
 
                 <div className="flex flex-1 min-w-0 flex-col px-2.5 pb-3 pt-2 text-center sm:px-4 sm:pb-4 sm:pt-3">
-                  <h3 className="min-h-[1rem] truncate text-[0.76rem] font-bold uppercase leading-tight tracking-[0.01em] text-gray-800 sm:min-h-[1.25rem] sm:text-[0.95rem]">{p.name}</h3>
+                  <h3 className="block min-h-[1rem] w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[0.76rem] font-bold uppercase leading-tight tracking-[0.01em] text-gray-800 sm:min-h-[1.25rem] sm:text-[0.95rem]">{p.name}</h3>
 
                   <p className="mt-1.5 min-h-[0.95rem] truncate text-[0.72rem] leading-snug text-gray-500 sm:mt-2 sm:min-h-[2.1rem] sm:line-clamp-2 sm:text-sm">{p.description || '\u00a0'}</p>
 

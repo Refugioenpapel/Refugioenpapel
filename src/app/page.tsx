@@ -8,7 +8,7 @@ import { fetchActiveSlides } from "@lib/supabase/heroSlides";
 import { fetchHomeProducts } from "@lib/supabase/products";
 import type { Product } from "types/product";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 function transformProductImages(product: Product): Product {
   return {
@@ -18,13 +18,14 @@ function transformProductImages(product: Product): Product {
 }
 
 export default async function Home() {
-  const [products, slides] = await Promise.all([
+  const [products, featuredProductsRaw, slides] = await Promise.all([
     fetchHomeProducts(),
+    fetchHomeProducts({ featuredOnly: true }),
     fetchActiveSlides(),
   ]);
 
   const allProducts = products.map(transformProductImages);
-  const featuredProducts = allProducts.filter((product) => product.is_featured);
+  const featuredProducts = featuredProductsRaw.map(transformProductImages);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
