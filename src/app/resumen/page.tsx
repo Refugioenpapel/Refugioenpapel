@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { normalizeMetaValue, trackMetaPixel } from '@lib/metaPixel';
 
 type CartItem = {
   id: string;
@@ -102,12 +103,37 @@ export default function ResumenPage() {
           return;
         }
 
+        if (data?.paymentStatus && data.paymentStatus !== 'approved') {
+          return;
+        }
+
+        const purchaseKey = `meta_purchase_tracked_${numeroPedido}`;
+        if (sessionStorage.getItem(purchaseKey) !== '1') {
+          trackMetaPixel(
+            'Purchase',
+            {
+              content_ids: products.map((item) => item.id),
+              content_type: 'product',
+              contents: products.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+                item_price: normalizeMetaValue(item.price),
+              })),
+              num_items: products.reduce((sum, item) => sum + item.quantity, 0),
+              value: normalizeMetaValue(totalFinal),
+              currency: 'ARS',
+            },
+            { eventID: `purchase-${numeroPedido}` }
+          );
+          sessionStorage.setItem(purchaseKey, '1');
+        }
+
         sessionStorage.setItem(sentKey, '1');
       } catch (error) {
         console.error('confirm-payment error:', error);
       }
     })();
-  }, [isMP, numeroPedido, paymentIdParam, statusParam]);
+  }, [isMP, numeroPedido, paymentIdParam, statusParam, products, totalFinal]);
 
   useEffect(() => {
     if (!checkoutInfo) return;

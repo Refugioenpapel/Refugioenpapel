@@ -7,6 +7,7 @@ import emailjs from 'emailjs-com';
 import { useCart } from '@context/CartContext';
 import type { CorreoSucursalOption } from '@lib/correoArgentino/branchLookup';
 import { applyProductDiscount, extractCorreoRateAmount } from '@lib/pricing';
+import { normalizeMetaValue, trackMetaPixel } from '@lib/metaPixel';
 
 type PaymentMethod = 'mp' | 'transfer';
 
@@ -111,6 +112,7 @@ export default function CheckoutPage() {
   const [provincias, setProvincias] = useState<{ id: string; nombre: string }[]>([]);
   const [localidadSuggestions, setLocalidadSuggestions] = useState<string[]>([]);
   const [showLocalidadSuggestions, setShowLocalidadSuggestions] = useState(false);
+  const initiateCheckoutTrackedRef = useRef(false);
   const localidadSuggestionsCache = useRef<Record<string, string[]>>({});
 
   const defaultProvincias = [
@@ -209,6 +211,26 @@ export default function CheckoutPage() {
     const base = cartTotal - transferenciaDescuentoMonto;
     return Math.max(0, base + envioFinal);
   }, [cartTotal, transferenciaDescuentoMonto, envioFinal]);
+
+  useEffect(() => {
+    if (cartItems.length === 0) return;
+    if (initiateCheckoutTrackedRef.current) return;
+
+    initiateCheckoutTrackedRef.current = true;
+
+    trackMetaPixel('InitiateCheckout', {
+      content_ids: cartItems.map((item) => item.id),
+      content_type: 'product',
+      contents: cartItems.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+        item_price: normalizeMetaValue(item.price),
+      })),
+      num_items: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      value: normalizeMetaValue(totalFinal),
+      currency: 'ARS',
+    });
+  }, [cartItems, totalFinal]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -660,6 +682,23 @@ export default function CheckoutPage() {
       // ✅ Si eligió TRANSFERENCIA: enviamos mail como venías haciendo y vamos a resumen
       if (paymentMethod === 'transfer') {
         await emailjs.send('service_wg78xcn', 'template_b529mq6', templateParams, 'cHz6pQf3uU5jTYI48');
+
+        trackMetaPixel(
+          'Purchase',
+          {
+            content_ids: cartItems.map((item) => item.id),
+            content_type: 'product',
+            contents: cartItems.map((item) => ({
+              id: item.id,
+              quantity: item.quantity,
+              item_price: normalizeMetaValue(item.price),
+            })),
+            num_items: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+            value: normalizeMetaValue(totalFinal),
+            currency: 'ARS',
+          },
+          { eventID: `purchase-${numeroPedido}` }
+        );
 
         clearCart();
         router.push(`/resumen?pedido=${numeroPedido}&email=${formData.email}`);

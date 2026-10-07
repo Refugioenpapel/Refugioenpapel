@@ -12,6 +12,7 @@ import {
 import PriceBlock from '@components/ui/PriceBlock';
 import type { CorreoSucursalOption } from '@lib/correoArgentino/branchLookup';
 import { applyProductDiscount, extractCorreoRateAmount, sanitizeDiscountPct } from '@lib/pricing';
+import { normalizeMetaValue, trackMetaPixel } from '@lib/metaPixel';
 
 type Variant = { label: string; price: number };
 
@@ -56,6 +57,22 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     setSelectedVariant(getDefaultVariant(product));
     setQuantity(1);
   }, [product.id, product.slug]);
+
+  useEffect(() => {
+    const defaultVariant = getDefaultVariant(product);
+    const unitPrice = Number(defaultVariant.price || product.price || 0);
+    const productDiscountPct = sanitizeDiscountPct(product.discount);
+    const promoPrice = applyProductDiscount(unitPrice, productDiscountPct);
+
+    trackMetaPixel('ViewContent', {
+      content_ids: [String(product.id)],
+      content_name: product.name,
+      content_type: 'product',
+      content_category: product.category,
+      value: normalizeMetaValue(promoPrice),
+      currency: 'ARS',
+    });
+  }, [product]);
 
   useEffect(() => {
     try {
@@ -260,9 +277,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     const unitPrice = Number(selectedVariant.price || 0);
     const productDiscountPct = sanitizeDiscountPct(product.discount);
     const promoPrice = applyProductDiscount(unitPrice, productDiscountPct);
+    const contentId = `${product.id}-${selectedVariant.label}`;
 
     addToCart({
-      id: `${product.id}-${selectedVariant.label}`,
+      id: contentId,
       name: product.name,
       variantLabel: selectedVariant.label,
       originalPrice: unitPrice,
@@ -276,6 +294,22 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       bulk_threshold_qty: product.bulk_threshold_qty ?? null,
       bulk_discount_pct: product.bulk_discount_pct ?? null,
       bulk_discounts: product.bulk_discounts ?? undefined,
+    });
+
+    trackMetaPixel('AddToCart', {
+      content_ids: [contentId],
+      content_name: product.name,
+      content_type: 'product',
+      content_category: product.category,
+      contents: [
+        {
+          id: contentId,
+          quantity,
+          item_price: normalizeMetaValue(promoPrice),
+        },
+      ],
+      value: normalizeMetaValue(promoPrice * quantity),
+      currency: 'ARS',
     });
 
     openCart();

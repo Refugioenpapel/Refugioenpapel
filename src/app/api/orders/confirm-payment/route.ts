@@ -136,7 +136,13 @@ export async function POST(req: Request) {
       };
     }
 
-    return NextResponse.json({ ok: true, sent: !alreadySent, alreadySent, shippingImport: shippingImportResult });
+    return NextResponse.json({
+      ok: true,
+      sent: !alreadySent,
+      alreadySent,
+      paymentStatus,
+      shippingImport: shippingImportResult,
+    });
   } catch (error: any) {
     console.error('orders.confirm-payment error:', error);
     return NextResponse.json(

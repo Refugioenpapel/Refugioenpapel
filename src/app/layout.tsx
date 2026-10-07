@@ -10,6 +10,7 @@ import { Just_Another_Hand, Allura, Ruluko } from "next/font/google";
 
 import { CartProvider } from "../context/CartContext";
 import AppShell from "@components/AppShell";
+import MetaPixel from "@components/MetaPixel";
 
 // Fuentes existentes
 const nunito = Nunito({ subsets: ["latin"], weight: "400", variable: "--font-nunito" });
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       `}
     >
       <body className="font-nunito bg-[#FFF8FA] text-[#444444]">
+        <MetaPixel />
         <CartProvider>
          {/* ⭐ Marquesina fija */}
           <div className="fixed top-0 left-0 right-0 w-full z-40">
